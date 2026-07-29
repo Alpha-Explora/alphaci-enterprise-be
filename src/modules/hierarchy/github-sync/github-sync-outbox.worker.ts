@@ -8,7 +8,10 @@ import { ConfigService } from '@nestjs/config';
 
 import type { AppConfig } from '../../../config/app.config';
 import { DatabaseService } from '../../database/database.service';
-import { GithubSyncService, type HierarchyOutboxJobPayload } from './github-sync.service';
+import {
+  GithubSyncService,
+  type HierarchyOutboxJobPayload,
+} from './github-sync.service';
 
 const BATCH_SIZE = 20;
 
@@ -42,8 +45,23 @@ export class GithubSyncOutboxWorker implements OnModuleInit, OnModuleDestroy {
     if (!config.hierarchy.enabled || !this.databaseService.isEnabled()) {
       return;
     }
+    // poll() can reject before its own try/catch is ever reached: withClient
+    // acquires the pool client *outside* that callback, so a connect-level
+    // failure (ENETUNREACH when the DB host is unreachable, ECONNREFUSED, a
+    // dead pool) rejects poll() itself. `void` marks the promise as
+    // intentionally unawaited but attaches no rejection handler, so such a
+    // failure becomes an unhandled rejection — fatal under Node's default
+    // policy. That turned a transient DB outage into a process exit and a
+    // Render crash-loop. Catching at the scheduling boundary is the only place
+    // that contains both this and a failing ROLLBACK inside poll()'s handler.
     this.intervalHandle = setInterval(() => {
-      void this.poll();
+      this.poll().catch((error: unknown) => {
+        this.logger.error(
+          `Hierarchy outbox poll failed: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      });
     }, config.hierarchy.syncPollIntervalMs);
   }
 

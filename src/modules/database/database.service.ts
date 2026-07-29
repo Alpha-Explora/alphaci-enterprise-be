@@ -237,6 +237,15 @@ export class DatabaseService implements OnModuleDestroy {
       'EPIPE',
       'ETIMEDOUT',
       'ENOTFOUND',
+      // "Never reached the server" failures: DNS resolved but the socket could
+      // not be opened at all. Safe to retry for the same reason as the codes
+      // above — the statement was never executed, so there is no double-apply
+      // risk. ENETUNREACH in particular is what Render returns when the DB URL
+      // points at Supabase's IPv6-only direct host (db.<ref>.supabase.co)
+      // instead of the IPv4-reachable Supavisor pooler.
+      'ECONNREFUSED',
+      'ENETUNREACH',
+      'EHOSTUNREACH',
     ]);
     if (retryableCodes.has(code)) {
       return true;
