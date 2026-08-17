@@ -220,11 +220,65 @@ export class AdminService {
       );
     }
 
+    // Pins the user to app_role_source='manual' (the repository default), so a
+    // later login or membership webhook cannot silently undo this decision.
+    // Undone by resetAppRoleToGithub below.
     await this.platformAdminsRepository.setAppRole(targetUserId, role);
     await this.audit(actorId, 'admin.app_role.set', 'Admin set global role', {
       targetUserId,
       role,
+      pinned: true,
     });
+  }
+
+  /**
+   * Unpins a user so GitHub org team membership drives their role again.
+   *
+   * The role itself is left as-is until the next login or membership webhook
+   * re-derives it: this endpoint has no GitHub token of its own, and inventing
+   * one here would duplicate the resolution logic that already lives in
+   * GithubTeamRoleService. Same authorization rules as setAppRole — unpinning
+   * an Admin is an Admin-tier change and is therefore super-admin only, since
+   * it can lead to that Admin being demoted on their next sign-in.
+   */
+  async resetAppRoleToGithub(
+    actorId: string,
+    targetUserId: string,
+  ): Promise<void> {
+    const target = await this.adminRepository.findUserById(targetUserId);
+    if (!target) {
+      throw new NotFoundException('User not found');
+    }
+
+    const [actorPlatformRole, targetPlatformRole, targetCurrentRole] =
+      await Promise.all([
+        this.platformAdminsRepository.findRole(actorId),
+        this.platformAdminsRepository.findRole(targetUserId),
+        this.platformAdminsRepository.findAppRole(targetUserId),
+      ]);
+
+    if (targetPlatformRole === 'super_admin') {
+      throw new BadRequestException(
+        'The permanent admin cannot be unpinned from GitHub team sync.',
+      );
+    }
+
+    if (targetCurrentRole === 'admin' && actorPlatformRole !== 'super_admin') {
+      throw new ForbiddenException(
+        'Only the super-admin can change Admin-level roles.',
+      );
+    }
+
+    await this.platformAdminsRepository.setAppRoleSource(
+      targetUserId,
+      'github_team',
+    );
+    await this.audit(
+      actorId,
+      'admin.app_role.reset_to_github',
+      'Admin reset global role to GitHub team sync',
+      { targetUserId, previousRole: targetCurrentRole },
+    );
   }
 
   async listFeedback(

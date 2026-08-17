@@ -6,7 +6,7 @@ import type {
   AdminUserSubscriptionRow,
   AdminUserWorkflowRow,
 } from './admin.repository';
-import type { AppRole } from './platform-admins.repository';
+import type { AppRole, AppRoleSource } from './platform-admins.repository';
 
 /**
  * View models returned to admins. These types DELIBERATELY have no field for any
@@ -25,8 +25,14 @@ export interface AdminUserListItem {
   lastLoginAt: string | null;
   archivedAt: string | null;
   onboardingCompleted: boolean;
-  /** Global hierarchy role — assigned in the Admin Console. */
+  /** Global hierarchy role — assigned in the Admin Console or synced from GitHub. */
   appRole: AppRole;
+  /**
+   * Where appRole came from. 'manual' means an admin pinned it and automatic
+   * GitHub team sync skips this user; 'github_team' means it follows the
+   * org teams and can change on their next login.
+   */
+  appRoleSource: AppRoleSource;
   projectCount: number;
   errorCount: number;
 }
@@ -57,6 +63,7 @@ export function toAdminUserListItem(row: AdminUserListRow): AdminUserListItem {
     archivedAt: row.archived_at,
     onboardingCompleted: row.onboarding_completed_at != null,
     appRole: row.app_role,
+    appRoleSource: row.app_role_source,
     projectCount: row.project_count,
     errorCount: row.error_count,
   });

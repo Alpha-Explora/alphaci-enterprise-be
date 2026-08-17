@@ -2,6 +2,22 @@ import { registerAs } from '@nestjs/config';
 
 import type { SubscriptionPlan } from '../common/interfaces/session-user.interface';
 
+/** See AppConfig['github']['teamRoleSync']. */
+export type GithubTeamRoleSyncMode = 'off' | 'seed' | 'enforce';
+
+/**
+ * Any unrecognized value resolves to 'off' — an environment must name the mode
+ * exactly to turn GitHub team reads on, matching how HIERARCHY_GITHUB_SYNC_MODE
+ * defaults to the inert option.
+ */
+function resolveTeamRoleSync(raw: string | undefined): GithubTeamRoleSyncMode {
+  const normalized = raw?.trim().toLowerCase();
+  if (normalized === 'seed' || normalized === 'enforce') {
+    return normalized;
+  }
+  return 'off';
+}
+
 export interface AppConfig {
   frontendUrl: string;
   github: {
@@ -29,6 +45,25 @@ export interface AppConfig {
      * installed on this org with access to all repositories.
      */
     enforcedOrg: string;
+    /**
+     * How GitHub org team membership feeds identity.app_users.app_role.
+     *
+     *   'off'     — never read teams (default). Legacy behaviour: app_role is
+     *               seeded from org OWNERSHIP on first login only.
+     *   'seed'    — team membership seeds app_role on first login only; the
+     *               Admin Console owns it from then on.
+     *   'enforce' — app_role is re-derived from team membership on every
+     *               login (and by the membership webhook), EXCEPT for users
+     *               pinned to app_role_source = 'manual'.
+     *
+     * Mirrors the HIERARCHY_GITHUB_SYNC_MODE safety pattern: an environment
+     * must opt in explicitly, and any unrecognized value falls back to 'off'.
+     */
+    teamRoleSync: GithubTeamRoleSyncMode;
+    /** Org team whose members become global 'lead' (may create projects). */
+    leadTeamSlug: string;
+    /** Org team whose members become global 'member' (assigned work only). */
+    developerTeamSlug: string;
   };
   templates: {
     repoPath: string;
@@ -222,6 +257,10 @@ export const appConfig = registerAs('app', (): AppConfig => {
       // and, by using `||`, treats an empty or unset GITHUB_ENFORCED_ORG as the
       // default too — the product can never provision into personal accounts.
       enforcedOrg: resolvedEnforcedOrg || defaultEnforcedOrg,
+      teamRoleSync: resolveTeamRoleSync(env['GITHUB_TEAM_ROLE_SYNC']),
+      leadTeamSlug: env['GITHUB_TEAM_LEAD_SLUG']?.trim() || 'team-lead',
+      developerTeamSlug:
+        env['GITHUB_TEAM_DEVELOPER_SLUG']?.trim() || 'developers',
     },
     templates: {
       repoPath: env['TEMPLATE_REPO_PATH'] ?? '../cicd-workflow',
@@ -422,7 +461,8 @@ export const appConfig = registerAs('app', (): AppConfig => {
       githubSyncMode:
         env['HIERARCHY_GITHUB_SYNC_MODE'] === 'live' ? 'live' : 'stub',
       encryptionKeyEnvVar:
-        env['HIERARCHY_ENCRYPTION_KEY_ENV_VAR'] ?? 'ENV_PROVISIONING_ENCRYPTION_KEY',
+        env['HIERARCHY_ENCRYPTION_KEY_ENV_VAR'] ??
+        'ENV_PROVISIONING_ENCRYPTION_KEY',
       maxSyncRetries: Number(env['HIERARCHY_MAX_SYNC_RETRIES'] ?? 5),
       syncPollIntervalMs: Number(
         env['HIERARCHY_SYNC_POLL_INTERVAL_MS'] ?? 5000,

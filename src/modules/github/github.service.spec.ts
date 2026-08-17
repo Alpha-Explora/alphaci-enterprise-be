@@ -40,6 +40,9 @@ const appConfig: AppConfig = {
     appWebhookSecret: 'webhook-secret',
     internalOrg: '',
     enforcedOrg: 'Alpha-Explora',
+    teamRoleSync: 'off',
+    leadTeamSlug: 'team-lead',
+    developerTeamSlug: 'developers',
   },
   templates: {
     repoPath: '../cicd-workflow',
@@ -617,7 +620,9 @@ describe('GithubService', () => {
         expect(listener).toHaveBeenCalledWith({
           repoFullName: 'Alpha-Explora/some-repo',
         });
-        expect(installationsRepository.deleteInstallation).not.toHaveBeenCalled();
+        expect(
+          installationsRepository.deleteInstallation,
+        ).not.toHaveBeenCalled();
       });
 
       it('ignores repository events for actions other than deleted', async () => {

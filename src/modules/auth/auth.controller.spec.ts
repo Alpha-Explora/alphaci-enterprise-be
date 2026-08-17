@@ -82,6 +82,9 @@ const makePlatformAdminsRepository = () =>
   ({
     findRole: jest.fn().mockResolvedValue(null),
     findAppRole: jest.fn().mockResolvedValue('member'),
+    findAppRoleWithSource: jest
+      .fn()
+      .mockResolvedValue({ role: 'member', source: 'github_team' }),
   }) as unknown as PlatformAdminsRepository;
 
 describe('AuthController', () => {

@@ -100,6 +100,10 @@ export class AuthController {
       };
     }
 
+    // Role + provenance in one round-trip.
+    const { role: appRole, source: appRoleSource } =
+      await this.platformAdminsRepository.findAppRoleWithSource(user.id);
+
     return {
       authenticated: true,
       user,
@@ -107,8 +111,13 @@ export class AuthController {
       // The frontend uses this to gate the /admin surface.
       platformRole: await this.platformAdminsRepository.findRole(user.id),
       // Global hierarchy role ('admin' | 'lead' | 'member'). The frontend uses
-      // this to gate create actions (systems/repositories) — only admin/lead.
-      appRole: await this.platformAdminsRepository.findAppRole(user.id),
+      // this to gate create actions (systems/repositories) — only admin/lead,
+      // and to show the "Team lead" / "Developer" badge in the sidebar.
+      appRole,
+      // 'github_team' (follows the org teams) or 'manual' (pinned in the
+      // Console). Surfaced so the Admin Console can explain WHY a role is
+      // what it is.
+      appRoleSource,
       subscription: await Promise.resolve(
         this.subscriptionService.getForUser(user),
       ),

@@ -7,6 +7,16 @@ export type PlatformRole = 'admin' | 'super_admin';
 /** Global hierarchy role — single source of truth for group capabilities. */
 export type AppRole = 'admin' | 'lead' | 'member';
 
+/**
+ * Provenance of app_role.
+ *  - 'github_team' — derived from GitHub org team membership; re-evaluated on
+ *    every login (and by the membership webhook) under GITHUB_TEAM_ROLE_SYNC
+ *    = 'enforce'.
+ *  - 'manual' — pinned by an Admin Console edit. Automatic sync skips these
+ *    users entirely until an admin resets them.
+ */
+export type AppRoleSource = 'github_team' | 'manual';
+
 export interface PlatformAdminRecord {
   userId: string;
   login: string;
@@ -51,12 +61,61 @@ export class PlatformAdminsRepository {
     return result.rows[0]?.app_role ?? 'member';
   }
 
-  /** Sets a user's global hierarchy role. */
-  async setAppRole(userId: string, role: AppRole): Promise<void> {
+  /**
+   * Sets a user's global hierarchy role.
+   *
+   * `source` defaults to 'manual' on purpose: every caller that reaches this
+   * method through the Admin Console is a deliberate human decision and must
+   * pin the user, so a later login can't silently undo it. Automatic sync
+   * paths pass 'github_team' explicitly.
+   */
+  async setAppRole(
+    userId: string,
+    role: AppRole,
+    source: AppRoleSource = 'manual',
+  ): Promise<void> {
     await this.databaseService.query(
-      `UPDATE identity.app_users SET app_role = $2 WHERE id = $1;`,
-      [userId, role],
+      `UPDATE identity.app_users SET app_role = $2, app_role_source = $3 WHERE id = $1;`,
+      [userId, role, source],
     );
+  }
+
+  /**
+   * Role plus provenance in one round-trip. Defaults to
+   * ('member', 'github_team') when the user is unknown, matching findAppRole.
+   */
+  async findAppRoleWithSource(
+    userId: string,
+  ): Promise<{ role: AppRole; source: AppRoleSource }> {
+    const result = await this.databaseService.query<{
+      app_role: AppRole;
+      app_role_source: AppRoleSource;
+    }>(
+      `SELECT app_role, app_role_source FROM identity.app_users WHERE id = $1 LIMIT 1;`,
+      [userId],
+    );
+    const row = result.rows[0];
+    return {
+      role: row?.app_role ?? 'member',
+      source: row?.app_role_source ?? 'github_team',
+    };
+  }
+
+  /** Unpins a user so GitHub team membership drives their role again. */
+  async setAppRoleSource(userId: string, source: AppRoleSource): Promise<void> {
+    await this.databaseService.query(
+      `UPDATE identity.app_users SET app_role_source = $2 WHERE id = $1;`,
+      [userId, source],
+    );
+  }
+
+  /** Resolves a GitHub login to an AlphaCI user id — used by the membership webhook. */
+  async findUserIdByGithubLogin(login: string): Promise<string | null> {
+    const result = await this.databaseService.query<{ id: string }>(
+      `SELECT id FROM identity.app_users WHERE LOWER(login) = LOWER($1) LIMIT 1;`,
+      [login],
+    );
+    return result.rows[0]?.id ?? null;
   }
 
   async list(): Promise<PlatformAdminRecord[]> {
