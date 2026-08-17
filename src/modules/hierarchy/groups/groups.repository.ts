@@ -2,9 +2,8 @@ import { Injectable } from '@nestjs/common';
 
 import { DatabaseService } from '../../database/database.service';
 import type {
+  GrantableRole,
   GroupRole,
-  InvitableRole,
-  InvitationStatus,
   LifecycleStatus,
   MemberStatus,
 } from '../hierarchy.types';
@@ -55,7 +54,7 @@ export interface InternalUserDirectoryEntry {
   name: string | null;
   email: string | null;
   avatarUrl: string | null;
-  /** True only when this org member has an AlphaCI account and can be invited. */
+  /** True only when this org member has an AlphaCI account and can be added. */
   hasAccount: boolean;
 }
 
@@ -65,7 +64,7 @@ export interface DirectoryAccountRecord {
   name: string | null;
   email: string | null;
   avatarUrl: string | null;
-  /** Already an active member of the Group being invited into. */
+  /** Already an active member of the Group being added to. */
   isActiveMember: boolean;
 }
 
@@ -74,32 +73,6 @@ export interface ActiveMembership {
   userId: string;
   role: GroupRole;
   memberId: string;
-}
-
-export interface GroupInvitationRecord {
-  id: string;
-  /** groupId, not workspaceId — see GroupMemberRecord.groupId comment above. */
-  groupId: string;
-  invitedUserId: string;
-  invitedBy: string;
-  role: InvitableRole;
-  status: InvitationStatus;
-  createdAt: string;
-  respondedAt: string | null;
-  expiresAt: string | null;
-  /**
-   * Display enrichment joined from identity.app_users / orgs.workspaces so the
-   * UI can render the invitee's real name + GitHub avatar (and, for the
-   * invitee's own inbox, who invited them and into which group) instead of a
-   * bare UUID. Null when the referenced profile/group no longer exists.
-   */
-  inviteeLogin: string | null;
-  inviteeName: string | null;
-  inviteeEmail: string | null;
-  inviteeAvatarUrl: string | null;
-  invitedByLogin: string | null;
-  invitedByName: string | null;
-  groupName: string | null;
 }
 
 interface GroupRow {
@@ -130,25 +103,6 @@ interface MemberRow {
   removed_by: string | null;
   removal_reason: string | null;
   created_at: string;
-}
-
-interface InvitationRow {
-  id: string;
-  workspace_id: string;
-  invited_user_id: string;
-  invited_by: string;
-  role: InvitableRole;
-  status: InvitationStatus;
-  created_at: string;
-  responded_at: string | null;
-  expires_at: string | null;
-  invitee_login: string | null;
-  invitee_name: string | null;
-  invitee_email: string | null;
-  invitee_avatar_url: string | null;
-  invited_by_login: string | null;
-  invited_by_name: string | null;
-  group_name: string | null;
 }
 
 @Injectable()
@@ -703,96 +657,20 @@ export class GroupsRepository {
     LEFT JOIN orgs.workspaces AS workspace ON workspace.id = inv.workspace_id
   `;
 
-  async createInvitation(input: {
-    groupId: string;
-    invitedUserId: string;
-    invitedBy: string;
-    role: InvitableRole;
-  }): Promise<GroupInvitationRecord> {
-    const inserted = await this.databaseService.query<{ id: string }>(
-      `
-        INSERT INTO orgs.group_invitations (workspace_id, invited_user_id, invited_by, role)
-        VALUES ($1, $2, $3, $4)
-        RETURNING id;
-      `,
-      [input.groupId, input.invitedUserId, input.invitedBy, input.role],
-    );
-    const id = inserted.rows[0]?.id;
-    if (!id) {
-      throw new Error('Invitation insert did not return a row');
-    }
-    // Re-read through the enriched select so the created invitation carries the
-    // invitee's name/avatar just like the list/find paths do.
-    const invitation = await this.findInvitationById(id);
-    if (!invitation) {
-      throw new Error('Invitation could not be read back after insert');
-    }
-    return invitation;
-  }
-
-  async listInvitations(groupId: string): Promise<GroupInvitationRecord[]> {
-    const result = await this.databaseService.query<InvitationRow>(
-      `${GroupsRepository.INVITATION_SELECT}
-        WHERE inv.workspace_id = $1
-        ORDER BY inv.created_at DESC;
-      `,
-      [groupId],
-    );
-    return result.rows.map((row) => this.toInvitation(row));
-  }
-
-  /** The invitee's own pending invitations across every group (their inbox). */
-  async listPendingInvitationsForUser(
-    userId: string,
-  ): Promise<GroupInvitationRecord[]> {
-    const result = await this.databaseService.query<InvitationRow>(
-      `${GroupsRepository.INVITATION_SELECT}
-        WHERE inv.invited_user_id = $1
-          AND inv.status = 'pending'
-        ORDER BY inv.created_at DESC;
-      `,
-      [userId],
-    );
-    return result.rows.map((row) => this.toInvitation(row));
-  }
-
-  async findInvitationById(
-    invitationId: string,
-  ): Promise<GroupInvitationRecord | null> {
-    const result = await this.databaseService.query<InvitationRow>(
-      `${GroupsRepository.INVITATION_SELECT}
-        WHERE inv.id = $1;
-      `,
-      [invitationId],
-    );
-    const row = result.rows[0];
-    return row ? this.toInvitation(row) : null;
-  }
-
-  async setInvitationStatus(
-    invitationId: string,
-    status: InvitationStatus,
-  ): Promise<GroupInvitationRecord | null> {
-    const updated = await this.databaseService.query(
-      `
-        UPDATE orgs.group_invitations
-        SET status = $2, responded_at = NOW()
-        WHERE id = $1;
-      `,
-      [invitationId, status],
-    );
-    if (updated.rowCount === 0) {
-      return null;
-    }
-    return this.findInvitationById(invitationId);
-  }
-
-  /** Activates membership on invitation acceptance — invited row becomes active, or is inserted if absent. */
-  async activateMembershipFromInvitation(
+  /**
+   * Grants membership immediately — there is no invitation and no pending
+   * state. Upserting on (workspace_id, user_id) makes re-adding a previously
+   * removed member a reinstatement rather than a unique violation.
+   *
+   * invited_by / invited_at keep their column names (renaming them would be a
+   * migration for no behavioural gain) but now record who added the member and
+   * when.
+   */
+  async addMemberDirect(
     groupId: string,
     userId: string,
-    role: InvitableRole,
-    invitedBy: string,
+    role: GrantableRole,
+    addedBy: string,
   ): Promise<void> {
     await this.databaseService.query(
       `
@@ -801,7 +679,7 @@ export class GroupsRepository {
         ON CONFLICT (workspace_id, user_id)
         DO UPDATE SET role = EXCLUDED.role, member_status = 'active', removed_at = NULL, removed_by = NULL, removal_reason = NULL;
       `,
-      [groupId, userId, role, invitedBy],
+      [groupId, userId, role, addedBy],
     );
   }
 
@@ -975,24 +853,4 @@ export class GroupsRepository {
     return (result.rowCount ?? 0) > 0;
   }
 
-  private toInvitation(row: InvitationRow): GroupInvitationRecord {
-    return {
-      id: row.id,
-      groupId: row.workspace_id,
-      invitedUserId: row.invited_user_id,
-      invitedBy: row.invited_by,
-      role: row.role,
-      status: row.status,
-      createdAt: row.created_at,
-      respondedAt: row.responded_at,
-      expiresAt: row.expires_at,
-      inviteeLogin: row.invitee_login,
-      inviteeName: row.invitee_name ?? row.invitee_login,
-      inviteeEmail: row.invitee_email,
-      inviteeAvatarUrl: row.invitee_avatar_url,
-      invitedByLogin: row.invited_by_login,
-      invitedByName: row.invited_by_name ?? row.invited_by_login,
-      groupName: row.group_name,
-    };
-  }
 }
