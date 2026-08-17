@@ -29,6 +29,8 @@ import { createSign } from 'node:crypto';
 
 import { Client } from 'pg';
 
+import { postgresSslConfig } from '../src/modules/database/postgres-ssl.config';
+
 const GITHUB_API = 'https://api.github.com';
 const USER_AGENT = 'cicd-workflow-product';
 
@@ -230,11 +232,13 @@ async function checkDatabase(): Promise<void> {
     return;
   }
 
+  // Reuse the app's own SSL resolver rather than hand-rolling one here.
+  // SUPABASE_DB_CA_CERT is commonly stored with escaped \n, which a raw pass
+  // silently turns into an invalid cert and a misleading "self-signed
+  // certificate in certificate chain" — postgresSslConfig normalizes it.
   const client = new Client({
     connectionString: dbUrl,
-    ...(process.env['SUPABASE_DB_CA_CERT']
-      ? { ssl: { ca: process.env['SUPABASE_DB_CA_CERT'] } }
-      : {}),
+    ssl: postgresSslConfig(dbUrl, process.env['SUPABASE_DB_CA_CERT']),
   });
 
   try {
