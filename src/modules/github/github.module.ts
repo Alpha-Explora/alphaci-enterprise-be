@@ -7,6 +7,7 @@ import { DatabaseModule } from '../database/database.module';
 import { PersistenceModule } from '../persistence/persistence.module';
 import { GithubInstallationsRepository } from './github-installations.repository';
 import { GithubController } from './github.controller';
+import { GithubTeamRoleReconcileWorker } from './github-team-role-reconcile.worker';
 import { GithubTeamRoleService } from './github-team-role.service';
 import { GithubWebhookController } from './github-webhook.controller';
 import { GithubService } from './github.service';
@@ -19,6 +20,7 @@ import { GithubService } from './github.service';
   providers: [
     GithubService,
     GithubTeamRoleService,
+    GithubTeamRoleReconcileWorker,
     GithubInstallationsRepository,
     SessionAuthGuard,
   ],

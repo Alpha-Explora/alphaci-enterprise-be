@@ -10,6 +10,7 @@ import type {
   AppRoleSource,
   PlatformAdminsRepository,
 } from '../admin/platform-admins.repository';
+import type { GithubInstallationsRepository } from './github-installations.repository';
 import type { GithubService } from './github.service';
 import { GithubTeamRoleService } from './github-team-role.service';
 
@@ -35,7 +36,10 @@ function makeConfigService(mode: GithubTeamRoleSyncMode): ConfigService {
  * `memberships` maps team slug -> true (member) / false (not) / null
  * (unreadable — the case that must never demote anyone).
  */
-function makeGithubService(memberships: Record<string, boolean | null>): {
+function makeGithubService(
+  memberships: Record<string, boolean | null>,
+  rosters: Record<string, string[]> = {},
+): {
   service: GithubService;
   getTeamMembership: jest.Mock;
 } {
@@ -46,12 +50,19 @@ function makeGithubService(memberships: Record<string, boolean | null>): {
   const service = {
     on: jest.fn(),
     getTeamMembership,
+    getEnforcedOrg: jest.fn(() => 'Alpha-Explora'),
     createInstallationAccessToken: jest.fn(() => Promise.resolve('tok')),
+    listTeamMembersWithToken: jest.fn((teamSlug: string) =>
+      Promise.resolve(rosters[teamSlug] ?? []),
+    ),
   } as unknown as GithubService;
   return { service, getTeamMembership };
 }
 
-function makeRepository(current: { role: AppRole; source: AppRoleSource }): {
+function makeRepository(
+  current: { role: AppRole; source: AppRoleSource },
+  syncedUsers: Array<{ id: string; login: string; appRole: AppRole }> = [],
+): {
   repository: PlatformAdminsRepository;
   setAppRole: jest.Mock;
   setAppRoleSource: jest.Mock;
@@ -61,6 +72,7 @@ function makeRepository(current: { role: AppRole; source: AppRoleSource }): {
   const repository = {
     findAppRoleWithSource: jest.fn(() => Promise.resolve(current)),
     findUserIdByGithubLogin: jest.fn(() => Promise.resolve('user-1')),
+    listGithubTeamSyncedUsers: jest.fn(() => Promise.resolve(syncedUsers)),
     setAppRole,
     setAppRoleSource,
   } as unknown as PlatformAdminsRepository;
@@ -73,22 +85,40 @@ function makeAudit(): AuditEventsService {
   } as unknown as AuditEventsService;
 }
 
+function makeInstallations(
+  installationId: number | null = 42,
+): GithubInstallationsRepository {
+  return {
+    findInstallationIdByAccountLogin: jest.fn(() =>
+      Promise.resolve(installationId),
+    ),
+  } as unknown as GithubInstallationsRepository;
+}
+
 function build(options: {
   mode?: GithubTeamRoleSyncMode;
   memberships?: Record<string, boolean | null>;
   current?: { role: AppRole; source: AppRoleSource };
+  rosters?: Record<string, string[]>;
+  syncedUsers?: Array<{ id: string; login: string; appRole: AppRole }>;
+  installationId?: number | null;
 }) {
   const { service: githubService, getTeamMembership } = makeGithubService(
     options.memberships ?? {},
+    options.rosters ?? {},
   );
   const { repository, setAppRole, setAppRoleSource } = makeRepository(
     options.current ?? { role: 'member', source: 'github_team' },
+    options.syncedUsers ?? [],
   );
   const service = new GithubTeamRoleService(
     makeConfigService(options.mode ?? 'enforce'),
     githubService,
     repository,
     makeAudit(),
+    makeInstallations(
+      options.installationId === undefined ? 42 : options.installationId,
+    ),
   );
   return { service, setAppRole, setAppRoleSource, getTeamMembership };
 }
@@ -306,6 +336,88 @@ describe('GithubTeamRoleService', () => {
       await expect(service.resolveSeedRole('ada', 'tok', true)).resolves.toBe(
         'admin',
       );
+    });
+  });
+
+  describe('reconcileAll (Phase 4b sweep)', () => {
+    const LEADS = { [LEAD_TEAM]: ['ada'], [DEV_TEAM]: ['bob'] };
+
+    it('does nothing unless the mode is enforce', async () => {
+      const { service, setAppRole } = build({ mode: 'seed', rosters: LEADS });
+      await expect(service.reconcileAll()).resolves.toEqual({
+        status: 'disabled',
+      });
+      expect(setAppRole).not.toHaveBeenCalled();
+    });
+
+    it('bails out when no org installation exists', async () => {
+      const { service, setAppRole } = build({
+        rosters: LEADS,
+        installationId: null,
+      });
+      await expect(service.reconcileAll()).resolves.toEqual({
+        status: 'unreadable',
+      });
+      expect(setAppRole).not.toHaveBeenCalled();
+    });
+
+    it('refuses to act when both rosters come back empty', async () => {
+      // An empty roster is indistinguishable from an unreadable one, and
+      // acting on it would demote every lead in the org in a single pass.
+      const { service, setAppRole } = build({
+        rosters: {},
+        syncedUsers: [{ id: 'u1', login: 'ada', appRole: 'lead' }],
+      });
+      await expect(service.reconcileAll()).resolves.toEqual({
+        status: 'unreadable',
+      });
+      expect(setAppRole).not.toHaveBeenCalled();
+    });
+
+    it('promotes and demotes to match the rosters', async () => {
+      const { service, setAppRole } = build({
+        rosters: LEADS,
+        syncedUsers: [
+          { id: 'u1', login: 'ada', appRole: 'member' }, // in team-lead → promote
+          { id: 'u2', login: 'bob', appRole: 'lead' }, // not in team-lead → demote
+          { id: 'u3', login: 'cleo', appRole: 'member' }, // already correct
+        ],
+      });
+
+      await expect(service.reconcileAll()).resolves.toEqual({
+        status: 'completed',
+        checked: 3,
+        updated: 2,
+      });
+      expect(setAppRole).toHaveBeenCalledWith('u1', 'lead', 'github_team');
+      expect(setAppRole).toHaveBeenCalledWith('u2', 'member', 'github_team');
+      expect(setAppRole).toHaveBeenCalledTimes(2);
+    });
+
+    it('never auto-downgrades an admin during the sweep', async () => {
+      const { service, setAppRole } = build({
+        rosters: LEADS,
+        syncedUsers: [{ id: 'u1', login: 'zed', appRole: 'admin' }],
+      });
+      await expect(service.reconcileAll()).resolves.toEqual({
+        status: 'completed',
+        checked: 1,
+        updated: 0,
+      });
+      expect(setAppRole).not.toHaveBeenCalled();
+    });
+
+    it('matches logins case-insensitively', async () => {
+      const { service, setAppRole } = build({
+        rosters: { [LEAD_TEAM]: ['Ada'], [DEV_TEAM]: ['bob'] },
+        syncedUsers: [{ id: 'u1', login: 'ada', appRole: 'member' }],
+      });
+      await expect(service.reconcileAll()).resolves.toEqual({
+        status: 'completed',
+        checked: 1,
+        updated: 1,
+      });
+      expect(setAppRole).toHaveBeenCalledWith('u1', 'lead', 'github_team');
     });
   });
 

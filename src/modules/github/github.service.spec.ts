@@ -43,6 +43,7 @@ const appConfig: AppConfig = {
     teamRoleSync: 'off',
     leadTeamSlug: 'team-lead',
     developerTeamSlug: 'developers',
+    teamRoleReconcileIntervalMs: 0,
   },
   templates: {
     repoPath: '../cicd-workflow',

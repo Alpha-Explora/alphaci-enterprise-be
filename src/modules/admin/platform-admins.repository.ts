@@ -109,6 +109,34 @@ export class PlatformAdminsRepository {
     );
   }
 
+  /**
+   * Every non-archived user whose role follows GitHub teams, for the
+   * reconciliation sweep. Users pinned to 'manual' are excluded at the query
+   * level so the worker cannot accidentally touch them.
+   */
+  async listGithubTeamSyncedUsers(): Promise<
+    Array<{ id: string; login: string; appRole: AppRole }>
+  > {
+    const result = await this.databaseService.query<{
+      id: string;
+      login: string;
+      app_role: AppRole;
+    }>(
+      `
+        SELECT id, login, app_role
+        FROM identity.app_users
+        WHERE app_role_source = 'github_team'
+          AND archived_at IS NULL
+          AND login IS NOT NULL;
+      `,
+    );
+    return result.rows.map((row) => ({
+      id: row.id,
+      login: row.login,
+      appRole: row.app_role,
+    }));
+  }
+
   /** Resolves a GitHub login to an AlphaCI user id — used by the membership webhook. */
   async findUserIdByGithubLogin(login: string): Promise<string | null> {
     const result = await this.databaseService.query<{ id: string }>(

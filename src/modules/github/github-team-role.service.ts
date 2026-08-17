@@ -10,17 +10,13 @@ import {
   PlatformAdminsRepository,
   type AppRole,
 } from '../admin/platform-admins.repository';
+import { GithubInstallationsRepository } from './github-installations.repository';
 import {
   GithubService,
   TEAM_MEMBERSHIP_CHANGED_EVENT,
   type TeamMembershipChangedEvent,
 } from './github.service';
 
-/**
- * Outcome of a sync attempt. `unknown` is deliberately distinct from
- * `unchanged`: the first means GitHub could not be read (and nothing was
- * touched), the second means GitHub was read and already agreed.
- */
 /** Sonar S6551-safe stringification of an unknown thrown value. */
 function describeError(error: unknown): string {
   if (error instanceof Error) return error.message;
@@ -28,6 +24,11 @@ function describeError(error: unknown): string {
   return JSON.stringify(error) ?? 'unknown error';
 }
 
+/**
+ * Outcome of a sync attempt. `unknown` is deliberately distinct from
+ * `unchanged`: the first means GitHub could not be read (and nothing was
+ * touched), the second means GitHub was read and already agreed.
+ */
 export type RoleSyncOutcome =
   | { status: 'disabled' }
   | { status: 'pinned'; role: AppRole }
@@ -64,6 +65,7 @@ export class GithubTeamRoleService {
     private readonly githubService: GithubService,
     private readonly platformAdminsRepository: PlatformAdminsRepository,
     private readonly auditEventsService: AuditEventsService,
+    private readonly installationsRepository: GithubInstallationsRepository,
   ) {
     // Fire-and-forget, matching ProjectsService's repository.deleted listener:
     // handleWebhook() has already ack'd the delivery to GitHub by the time this
@@ -268,6 +270,99 @@ export class GithubTeamRoleService {
       token,
       trigger: 'webhook:membership',
     });
+  }
+
+  /**
+   * Periodic sweep that reconciles every GitHub-synced user against the two
+   * team rosters. The safety net for webhook deliveries that were missed,
+   * dropped, or arrived while the service was down.
+   *
+   * Reads the two rosters ONCE (2 API calls) and reconciles in memory, rather
+   * than issuing a membership check per user — with a few dozen users that is
+   * the difference between 2 requests and 100.
+   *
+   * Bails out entirely if either roster comes back empty. An empty roster is
+   * indistinguishable from an unreadable one at this layer (listTeamMembers
+   * degrades to [] on failure), and treating "unreadable" as "nobody is in
+   * team-lead" would demote every lead in the org in one pass. Refusing to act
+   * on an ambiguous read is the whole point.
+   */
+  async reconcileAll(): Promise<{
+    status: 'disabled' | 'unreadable' | 'completed';
+    checked?: number;
+    updated?: number;
+  }> {
+    if (this.mode !== 'enforce') return { status: 'disabled' };
+
+    const org = this.githubService.getEnforcedOrg();
+    const installationId =
+      await this.installationsRepository.findInstallationIdByAccountLogin(org);
+    if (!installationId) {
+      this.logger.warn(
+        `Role reconciliation skipped: no GitHub App installation found for org ${org}.`,
+      );
+      return { status: 'unreadable' };
+    }
+
+    const { leadTeamSlug, developerTeamSlug } = this.config.github;
+    let leadMembers: string[];
+    let developerMembers: string[];
+    try {
+      const token =
+        await this.githubService.createInstallationAccessToken(installationId);
+      [leadMembers, developerMembers] = await Promise.all([
+        this.githubService.listTeamMembersWithToken(leadTeamSlug, token),
+        this.githubService.listTeamMembersWithToken(developerTeamSlug, token),
+      ]);
+    } catch (error) {
+      this.logger.warn(
+        `Role reconciliation could not read team rosters: ${describeError(error)}`,
+      );
+      return { status: 'unreadable' };
+    }
+
+    if (leadMembers.length === 0 && developerMembers.length === 0) {
+      this.logger.warn(
+        'Role reconciliation skipped: both team rosters came back empty, which is indistinguishable from an unreadable response.',
+      );
+      return { status: 'unreadable' };
+    }
+
+    const leads = new Set(leadMembers.map((login) => login.toLowerCase()));
+    const users =
+      await this.platformAdminsRepository.listGithubTeamSyncedUsers();
+
+    let updated = 0;
+    for (const user of users) {
+      // Rule 3 still applies — admins are owner/Console territory.
+      if (user.appRole === 'admin') continue;
+
+      const derived: AppRole = leads.has(user.login.toLowerCase())
+        ? 'lead'
+        : 'member';
+      if (derived === user.appRole) continue;
+
+      await this.platformAdminsRepository.setAppRole(
+        user.id,
+        derived,
+        'github_team',
+      );
+      await this.recordRoleChange({
+        userId: user.id,
+        login: user.login,
+        from: user.appRole,
+        to: derived,
+        trigger: 'reconcile',
+      });
+      updated += 1;
+    }
+
+    if (updated > 0) {
+      this.logger.log(
+        `Role reconciliation updated ${String(updated)} of ${String(users.length)} synced users.`,
+      );
+    }
+    return { status: 'completed', checked: users.length, updated };
   }
 
   private async recordRoleChange(input: {

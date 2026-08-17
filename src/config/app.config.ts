@@ -64,6 +64,13 @@ export interface AppConfig {
     leadTeamSlug: string;
     /** Org team whose members become global 'member' (assigned work only). */
     developerTeamSlug: string;
+    /**
+     * How often (ms) the reconciliation sweep re-reads both team rosters and
+     * corrects any app_role that drifted — the safety net for webhook
+     * deliveries that were missed or arrived while the service was down.
+     * 0 disables the sweep. Only runs under teamRoleSync='enforce'.
+     */
+    teamRoleReconcileIntervalMs: number;
   };
   templates: {
     repoPath: string;
@@ -261,6 +268,9 @@ export const appConfig = registerAs('app', (): AppConfig => {
       leadTeamSlug: env['GITHUB_TEAM_LEAD_SLUG']?.trim() || 'team-lead',
       developerTeamSlug:
         env['GITHUB_TEAM_DEVELOPER_SLUG']?.trim() || 'developers',
+      teamRoleReconcileIntervalMs: Number(
+        env['GITHUB_TEAM_ROLE_RECONCILE_INTERVAL_MS'] ?? 900_000,
+      ),
     },
     templates: {
       repoPath: env['TEMPLATE_REPO_PATH'] ?? '../cicd-workflow',

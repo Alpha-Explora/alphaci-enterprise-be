@@ -325,8 +325,20 @@ export class GithubService extends EventEmitter {
    * rather than "the team is empty".
    */
   async listTeamMembers(userId: string, teamSlug: string): Promise<string[]> {
-    const org = this.getEnforcedOrg();
     const token = await this.getInstallationAccessTokenForUser(userId);
+    if (!token) return [];
+    return this.listTeamMembersWithToken(teamSlug, token);
+  }
+
+  /**
+   * Roster variant for callers that already hold a token — notably background
+   * jobs, which have no acting user to resolve an installation token from.
+   */
+  async listTeamMembersWithToken(
+    teamSlug: string,
+    token: string,
+  ): Promise<string[]> {
+    const org = this.getEnforcedOrg();
     if (!org || !teamSlug || !token) return [];
 
     const logins: string[] = [];
