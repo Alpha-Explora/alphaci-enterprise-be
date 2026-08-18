@@ -7,10 +7,7 @@ import {
 import { AuditEventsService } from '../../audit/audit-events.service';
 import { HierarchyAccessService } from '../hierarchy-access.service';
 import { HIERARCHY_EVENT_CODES, type GrantableRole } from '../hierarchy.types';
-import {
-  GroupsRepository,
-  type GroupMemberRecord,
-} from './groups.repository';
+import { GroupsRepository, type GroupMemberRecord } from './groups.repository';
 
 /**
  * Adding people to a group.

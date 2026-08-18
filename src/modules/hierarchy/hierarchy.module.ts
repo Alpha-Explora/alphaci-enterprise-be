@@ -93,7 +93,11 @@ import { SystemsService } from './systems/systems.service';
         const config = configService.getOrThrow<AppConfig>('app');
         return config.hierarchy.githubSyncMode === 'live' ? live : stub;
       },
-      inject: [ConfigService, GithubTeamAccessStubProvider, GithubTeamAccessLiveProvider],
+      inject: [
+        ConfigService,
+        GithubTeamAccessStubProvider,
+        GithubTeamAccessLiveProvider,
+      ],
     },
     RepoConfigurationChangesRepository,
     GithubSecretsProvider,

@@ -60,6 +60,8 @@ describe('GroupsService — role enforcement (hard constraint: developer -> 403 
     groupsRepository = {
       findActiveMembership: jest.fn(),
       findGroupById: jest.fn(),
+      // No parent: the manager check has nothing to inherit from.
+      findParentWorkspaceId: jest.fn().mockResolvedValue(null),
       updateGroup: jest.fn(),
       setArchiveStatus: jest.fn(),
       findMemberById: jest.fn(),

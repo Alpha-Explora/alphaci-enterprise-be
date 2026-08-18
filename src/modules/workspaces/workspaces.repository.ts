@@ -14,7 +14,7 @@ export type WorkspaceRole = 'admin' | 'delegated_lead' | 'member' | 'viewer';
 export interface WorkspaceSummary {
   id: string;
   name: string;
-  kind: 'personal' | 'team';
+  kind: 'personal' | 'workspace' | 'team';
   role: WorkspaceRole;
 }
 
@@ -39,7 +39,7 @@ export interface WorkspaceMembership {
 interface WorkspaceRow {
   id: string;
   name: string;
-  kind: 'personal' | 'team';
+  kind: 'personal' | 'workspace' | 'team';
   role: WorkspaceRole;
 }
 
@@ -71,6 +71,10 @@ export class WorkspacesRepository {
         JOIN orgs.workspaces AS workspace
           ON workspace.id = member.workspace_id
         WHERE member.user_id = $1
+          -- Top level only. Teams are workspaces too (parent_workspace_id set),
+          -- and listing them here is what made the header switcher and the
+          -- Teams page show the same rows from two angles.
+          AND workspace.parent_workspace_id IS NULL
         ORDER BY workspace.created_at ASC;
       `,
       [userId],

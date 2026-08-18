@@ -181,6 +181,14 @@ export class HierarchyAccessService {
    * Platform admin bypasses the membership requirement entirely (source plan
    * §3: "Platform administrators have full system-wide authority").
    */
+  /**
+   * Managing a TEAM also passes for a manager of its parent workspace.
+   *
+   * Without inheritance a lead can create a team and immediately be locked out
+   * of it — they are a manager of the workspace, not automatically of every
+   * team inside. Walking one level up is the whole rule; nesting is capped at
+   * two, so there is never a chain to follow.
+   */
   async assertGroupManagerOrPlatformAdmin(
     groupId: string,
     userId: string,
@@ -197,12 +205,44 @@ export class HierarchyAccessService {
       }
       return { viaPlatformAdmin: true, membership: null };
     }
-    const membership = await this.assertGroupRole(
-      groupId,
-      userId,
-      allowedRoles,
-    );
-    return { viaPlatformAdmin: false, membership };
+    try {
+      const membership = await this.assertGroupRole(
+        groupId,
+        userId,
+        allowedRoles,
+      );
+      return { viaPlatformAdmin: false, membership };
+    } catch (error) {
+      const parentId =
+        await this.groupsRepository.findParentWorkspaceId(groupId);
+      if (!parentId) throw error;
+      const membership = await this.assertGroupRole(
+        parentId,
+        userId,
+        allowedRoles,
+      );
+      return { viaPlatformAdmin: false, membership };
+    }
+  }
+
+  /**
+   * Creating a team inside a workspace needs BOTH: the global tier that may
+   * create at all, and manager rights on that particular workspace. The global
+   * role alone says what you are, not where you may act.
+   */
+  async assertCanCreateTeamInWorkspace(
+    parentWorkspaceId: string,
+    userId: string,
+  ): Promise<void> {
+    if (await this.isPlatformAdmin(userId)) return;
+
+    if ((await this.getAppRole(userId)) === 'member') {
+      throw new ForbiddenException('Only Leads and Admins can create teams');
+    }
+    await this.assertGroupRole(parentWorkspaceId, userId, [
+      'admin',
+      'delegated_lead',
+    ]);
   }
 
   // ─── Systems ──────────────────────────────────────────────────────────
