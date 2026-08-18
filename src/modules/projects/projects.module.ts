@@ -27,6 +27,8 @@ import { ProjectSyncFindingsRepository } from './project-sync-findings.repositor
 import { ProjectWorkflowSettingsRepository } from './project-workflow-settings.repository';
 import { ProjectWorkflowUpdateRequestsRepository } from './project-workflow-update-requests.repository';
 import { ProjectsRepository } from './projects.repository';
+import { ProjectWorkspaceController } from './project-workspace.controller';
+import { ProjectWorkspaceService } from './project-workspace.service';
 import { ProjectsService } from './projects.service';
 
 @Module({
@@ -43,9 +45,10 @@ import { ProjectsService } from './projects.service';
     WorkspacesModule,
     NotificationsModule,
   ],
-  controllers: [ProjectsController],
+  controllers: [ProjectsController, ProjectWorkspaceController],
   providers: [
     ProjectsService,
+    ProjectWorkspaceService,
     ProjectCiRunsService,
     ProjectDeploymentsService,
     ProjectDriftRepairService,
