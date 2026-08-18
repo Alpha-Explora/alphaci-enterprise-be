@@ -37,6 +37,29 @@ export class HierarchyProjectLinkService {
   constructor(private readonly repository: HierarchyProjectLinkRepository) {}
 
   /**
+   * Read-only lookup of an ALREADY-linked hierarchy repository id.
+   *
+   * The assignment UI lives on hierarchy.repositories, but every other surface
+   * addresses a project by its provisioned_projects id. This is the one hop
+   * between them, so the project page can offer a route into the assignment
+   * panel. Returns null when the project has no link (personal workspace, or
+   * created before the link existed) — the caller then hides the entry point
+   * rather than offering a URL that would 404. Never throws.
+   */
+  async getLinkedRepositoryId(projectId: string): Promise<string | null> {
+    try {
+      return await this.repository.findLinkedRepositoryId(projectId);
+    } catch (error) {
+      this.logger.warn(
+        `Could not resolve the hierarchy link for project ${projectId}: ${
+          error instanceof Error ? error.message : JSON.stringify(error)
+        }`,
+      );
+      return null;
+    }
+  }
+
+  /**
    * Returns the hierarchy repository id, or null when no link was needed or
    * possible. Never throws.
    */

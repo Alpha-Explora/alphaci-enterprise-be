@@ -277,6 +277,16 @@ export interface ProjectOverviewResponse {
     deploymentHistory: boolean;
     driftDetection: boolean;
   };
+  /**
+   * The hierarchy.repositories id this project is linked to, or null.
+   *
+   * Developer assignments hang off hierarchy.repositories, not off
+   * provisioned_projects, so without this id the project page has no way to
+   * address its own access panel. Null means "no assignment surface for this
+   * project" — a personal-workspace project, or one created before the link
+   * existed — and the UI hides the entry point rather than guessing a URL.
+   */
+  hierarchyRepositoryId: string | null;
 }
 
 export interface ProjectSyncSnapshotResponse {
@@ -1221,6 +1231,7 @@ export class ProjectsService {
       envMetadata,
       workflowHistory,
       latestSnapshot,
+      hierarchyRepositoryId,
     ] = await Promise.all([
       this.loadCiTokenStatus(projectId),
       this.deploymentTargetsRepository?.listDeploymentTargets(projectId) ??
@@ -1233,6 +1244,8 @@ export class ProjectsService {
         limit: 5,
       }) ?? Promise.resolve([]),
       this.dashboardSnapshotsRepository?.findLatestByProject(projectId) ??
+        Promise.resolve(null),
+      this.hierarchyProjectLinkService?.getLinkedRepositoryId(projectId) ??
         Promise.resolve(null),
     ]);
 
@@ -1286,6 +1299,7 @@ export class ProjectsService {
         deploymentHistory: this.deploymentHistoryEnabled(),
         driftDetection: this.driftDetectionEnabled(),
       },
+      hierarchyRepositoryId,
     };
   }
 

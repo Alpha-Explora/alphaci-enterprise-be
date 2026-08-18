@@ -82,6 +82,35 @@ describe('HierarchyProjectLinkService', () => {
     );
   });
 
+  describe('getLinkedRepositoryId', () => {
+    it('returns the linked repository id', async () => {
+      const { service } = build({
+        findLinkedRepositoryId: jest.fn(() => Promise.resolve('repo-9')),
+      });
+      await expect(service.getLinkedRepositoryId('p1')).resolves.toBe('repo-9');
+    });
+
+    it('returns null for an unlinked project so the UI hides the entry point', async () => {
+      const { service } = build();
+      await expect(service.getLinkedRepositoryId('p1')).resolves.toBeNull();
+    });
+
+    it('never throws — the project overview must render without the link', async () => {
+      const { service } = build({
+        findLinkedRepositoryId: jest.fn(() =>
+          Promise.reject(new Error('db down')),
+        ),
+      });
+      await expect(service.getLinkedRepositoryId('p1')).resolves.toBeNull();
+    });
+
+    it('is READ-ONLY — looking up a link never creates one', async () => {
+      const { service, link } = build();
+      await service.getLinkedRepositoryId('p1');
+      expect(link).not.toHaveBeenCalled();
+    });
+  });
+
   it('never throws — a failed link must not fail an already-provisioned project', async () => {
     // By the time this runs the GitHub repo, branches, secrets and workflow
     // commit have all succeeded. Throwing here would report a working project
