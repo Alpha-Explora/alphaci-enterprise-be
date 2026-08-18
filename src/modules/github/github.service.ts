@@ -17,6 +17,16 @@ import sodium from 'libsodium-wrappers';
 
 import type { AppConfig } from '../../config/app.config';
 import { ENV_GUARD_CHECK_CONTEXT } from '../workflows/staged-workflow.builder';
+import type {
+  GitHubBranchSummary,
+  GitHubContentEntry,
+  GitHubContentEntryType,
+  GitHubContentListing,
+  GitHubPullRequestFile,
+  GitHubPullRequestSummary,
+  GitHubRunJob,
+  GitHubWorkflowRunSummary,
+} from './github-workspace.types';
 import type { CreateRepoDto } from './dto/create-repo.dto';
 import {
   GithubInstallationsRepository,
@@ -52,6 +62,75 @@ interface GitHubContentResponse {
   content?: string;
   encoding?: string;
   sha?: string;
+}
+
+/**
+ * Raw rows from GitHub's REST responses, declared only as far as the workspace
+ * reads consume them. Every field is optional: these describe someone else's
+ * API, and a missing key must fall back rather than throw.
+ */
+interface GitHubContentsRow {
+  name?: string;
+  path?: string;
+  type?: string;
+  size?: number;
+  sha?: string;
+  content?: string;
+  encoding?: string;
+  html_url?: string;
+}
+
+interface GitHubWorkflowRunRow {
+  id: number;
+  name?: string;
+  display_title?: string;
+  head_branch?: string;
+  head_sha?: string;
+  head_commit?: { message?: string };
+  event?: string;
+  status?: string;
+  conclusion?: string | null;
+  run_number?: number;
+  run_attempt?: number;
+  html_url?: string;
+  actor?: { login?: string };
+  created_at?: string;
+  updated_at?: string;
+}
+
+interface GitHubRunJobRow {
+  id: number;
+  name?: string;
+  status?: string;
+  conclusion?: string | null;
+  started_at?: string | null;
+  completed_at?: string | null;
+  html_url?: string | null;
+  steps?: Array<{
+    name?: string;
+    status?: string;
+    conclusion?: string | null;
+    number?: number;
+    started_at?: string | null;
+    completed_at?: string | null;
+  }>;
+}
+
+interface GitHubPullRequestRow {
+  number: number;
+  title?: string;
+  state?: string;
+  draft?: boolean;
+  merged_at?: string | null;
+  html_url?: string;
+  head?: { ref?: string };
+  base?: { ref?: string };
+  user?: { login?: string; avatar_url?: string };
+  created_at?: string;
+  updated_at?: string;
+  additions?: number;
+  deletions?: number;
+  changed_files?: number;
 }
 
 interface GitHubContentsWriteResponse {
@@ -1386,6 +1465,357 @@ export class GithubService extends EventEmitter {
     }
 
     return Buffer.from(payload.content, 'base64').toString('utf8');
+  }
+
+  // ─── Workspace reads ──────────────────────────────────────────────────────
+  //
+  // Everything below is READ-ONLY and exists to render a project's Code, Pull
+  // requests and Pipeline runs tabs. They share one discipline, because they
+  // run against an installation token whose rate limit is shared by the whole
+  // organisation:
+  //
+  //   * the run LIST is the only thing a screen may poll;
+  //   * a run's jobs load when someone opens that run, never inside the poll;
+  //   * a job's log loads when someone opens that job, and is never polled.
+  //
+  // Breaking that ordering is how a handful of open tabs exhausts the org's
+  // hourly budget and every other GitHub call in the product starts failing.
+
+  /** Max bytes of a blob we will decode and send to a browser. */
+  private static readonly MAX_FILE_BYTES = 512 * 1024;
+
+  private workspaceHeaders(accessToken: string): Record<string, string> {
+    return {
+      Authorization: `Bearer ${accessToken}`,
+      Accept: 'application/vnd.github+json',
+      'User-Agent': 'cicd-workflow-product',
+      'X-GitHub-Api-Version': '2022-11-28',
+    };
+  }
+
+  /**
+   * Shared failure path for every workspace read.
+   *
+   * 404 comes back as null rather than thrown: an empty repository, a deleted
+   * branch, or a path that no longer exists are all normal states a browsing UI
+   * must render as "nothing here", not as an error banner. 409 is GitHub's
+   * answer for "this repository is empty", which is the same situation.
+   */
+  private async workspaceGet<T>(
+    url: string,
+    accessToken: string,
+    what: string,
+  ): Promise<T | null> {
+    const response = await this.fetchWithRetry(url, {
+      headers: this.workspaceHeaders(accessToken),
+    });
+
+    if (response.status === 404 || response.status === 409) {
+      return null;
+    }
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new BadGatewayException(
+        `GitHub ${what} failed (${String(response.status)}): ${body.slice(0, 300)}`,
+      );
+    }
+
+    return (await response.json()) as T;
+  }
+
+  async listBranches(
+    accessToken: string,
+    repoFullName: string,
+  ): Promise<GitHubBranchSummary[]> {
+    const payload = await this.workspaceGet<
+      Array<{ name: string; protected?: boolean; commit?: { sha?: string } }>
+    >(
+      `https://api.github.com/repos/${repoFullName}/branches?per_page=100`,
+      accessToken,
+      'branch list',
+    );
+
+    return (payload ?? []).map((branch) => ({
+      name: branch.name,
+      protected: branch.protected === true,
+      commitSha: branch.commit?.sha ?? '',
+    }));
+  }
+
+  /**
+   * One directory listing, or one file's contents, at a ref.
+   *
+   * GitHub answers with an array for a directory and an object for a file, so
+   * both are normalised into a single response. The caller cannot know which it
+   * asked for until the answer arrives, and modelling both here means the
+   * browser makes one request per click rather than guessing first.
+   */
+  async listRepoContents(
+    accessToken: string,
+    repoFullName: string,
+    path: string,
+    ref: string,
+  ): Promise<GitHubContentListing> {
+    const cleanPath = path.replace(/^\/+|\/+$/g, '');
+    const url =
+      `https://api.github.com/repos/${repoFullName}/contents/${cleanPath}` +
+      `?ref=${encodeURIComponent(ref)}`;
+
+    const payload = await this.workspaceGet<unknown>(
+      url,
+      accessToken,
+      'contents read',
+    );
+
+    if (payload === null) {
+      return { path: cleanPath, ref, entries: [], file: null };
+    }
+
+    if (Array.isArray(payload)) {
+      const entries = (payload as GitHubContentsRow[])
+        .map(
+          (row): GitHubContentEntry => ({
+            name: row.name ?? '',
+            path: row.path ?? '',
+            type: (row.type ?? 'file') as GitHubContentEntryType,
+            size: row.size ?? 0,
+            sha: row.sha ?? '',
+          }),
+        )
+        // Directories first, then alphabetical — the ordering every file
+        // browser uses, and one GitHub does not guarantee.
+        .sort((a, b) => {
+          if (a.type !== b.type) return a.type === 'dir' ? -1 : 1;
+          return a.name.localeCompare(b.name);
+        });
+
+      return { path: cleanPath, ref, entries, file: null };
+    }
+
+    const row = payload as GitHubContentsRow;
+    const size = row.size ?? 0;
+    // A binary blob or an oversized file is reported as truncated rather than
+    // decoded: turning a PNG into a UTF-8 string produces a screenful of
+    // replacement characters, which reads as corruption rather than as "this is
+    // not text". The NUL-byte probe is the same heuristic git itself uses.
+    const tooLarge = size > GithubService.MAX_FILE_BYTES;
+    const decoded =
+      !tooLarge && row.content && row.encoding === 'base64'
+        ? Buffer.from(row.content, 'base64')
+        : null;
+    const isText = decoded !== null && !decoded.includes(0);
+
+    return {
+      path: row.path ?? cleanPath,
+      ref,
+      entries: [],
+      file: {
+        name: row.name ?? cleanPath,
+        path: row.path ?? cleanPath,
+        size,
+        sha: row.sha ?? '',
+        content: isText && decoded ? decoded.toString('utf8') : null,
+        truncated: tooLarge || !isText,
+        htmlUrl: row.html_url ?? null,
+      },
+    };
+  }
+
+  /**
+   * Workflow runs for a repository, newest first.
+   *
+   * THIS is the only workspace read a screen may poll.
+   */
+  async listWorkflowRuns(
+    accessToken: string,
+    repoFullName: string,
+    branch?: string | null,
+    limit = 20,
+  ): Promise<GitHubWorkflowRunSummary[]> {
+    const params = new URLSearchParams({
+      per_page: String(Math.min(limit, 50)),
+    });
+    if (branch) params.set('branch', branch);
+
+    const payload = await this.workspaceGet<{
+      workflow_runs?: GitHubWorkflowRunRow[];
+    }>(
+      `https://api.github.com/repos/${repoFullName}/actions/runs?${params.toString()}`,
+      accessToken,
+      'workflow run list',
+    );
+
+    return (payload?.workflow_runs ?? []).map((run) => ({
+      id: run.id,
+      name: run.name ?? 'Workflow',
+      displayTitle:
+        run.display_title ?? run.head_commit?.message?.split('\n')[0] ?? '',
+      headBranch: run.head_branch ?? '',
+      headSha: run.head_sha ?? '',
+      event: run.event ?? '',
+      status: run.status ?? 'unknown',
+      conclusion: run.conclusion ?? null,
+      runNumber: run.run_number ?? 0,
+      runAttempt: run.run_attempt ?? 1,
+      htmlUrl: run.html_url ?? '',
+      actor: run.actor?.login ?? null,
+      createdAt: run.created_at ?? '',
+      updatedAt: run.updated_at ?? '',
+    }));
+  }
+
+  /** One run's jobs and their steps. Loaded on open — never inside a poll. */
+  async getWorkflowRunJobs(
+    accessToken: string,
+    repoFullName: string,
+    runId: number,
+  ): Promise<GitHubRunJob[]> {
+    const payload = await this.workspaceGet<{ jobs?: GitHubRunJobRow[] }>(
+      `https://api.github.com/repos/${repoFullName}/actions/runs/${String(runId)}/jobs?per_page=100`,
+      accessToken,
+      'workflow job list',
+    );
+
+    return (payload?.jobs ?? []).map((job) => ({
+      id: job.id,
+      name: job.name ?? '',
+      status: job.status ?? 'unknown',
+      conclusion: job.conclusion ?? null,
+      startedAt: job.started_at ?? null,
+      completedAt: job.completed_at ?? null,
+      htmlUrl: job.html_url ?? null,
+      steps: (job.steps ?? []).map((step) => ({
+        name: step.name ?? '',
+        status: step.status ?? 'unknown',
+        conclusion: step.conclusion ?? null,
+        number: step.number ?? 0,
+        startedAt: step.started_at ?? null,
+        completedAt: step.completed_at ?? null,
+      })),
+    }));
+  }
+
+  /**
+   * One job's console output.
+   *
+   * The largest response in the product, so it is fetched only when a person
+   * opens a job, never polled, and capped before it leaves the server. The cap
+   * keeps the TAIL: a failing step's reason is at the end of a log, so the end
+   * is the part worth keeping when something has to be dropped.
+   */
+  async getJobLogs(
+    accessToken: string,
+    repoFullName: string,
+    jobId: number,
+    maxChars = 200_000,
+  ): Promise<{ content: string; truncated: boolean } | null> {
+    const response = await this.fetchWithRetry(
+      `https://api.github.com/repos/${repoFullName}/actions/jobs/${String(jobId)}/logs`,
+      { headers: this.workspaceHeaders(accessToken), redirect: 'follow' },
+    );
+
+    // 410 Gone is normal, not an error: GitHub expires logs after its
+    // retention window, and an old run legitimately has none.
+    if (response.status === 404 || response.status === 410) {
+      return null;
+    }
+
+    if (!response.ok) {
+      const body = await response.text();
+      throw new BadGatewayException(
+        `GitHub job log read failed (${String(response.status)}): ${body.slice(0, 300)}`,
+      );
+    }
+
+    const text = await response.text();
+    if (text.length <= maxChars) {
+      return { content: text, truncated: false };
+    }
+
+    return { content: text.slice(text.length - maxChars), truncated: true };
+  }
+
+  async listPullRequests(
+    accessToken: string,
+    repoFullName: string,
+    state: 'open' | 'closed' | 'all' = 'all',
+    limit = 30,
+  ): Promise<GitHubPullRequestSummary[]> {
+    const params = new URLSearchParams({
+      state,
+      per_page: String(Math.min(limit, 50)),
+      sort: 'updated',
+      direction: 'desc',
+    });
+
+    const payload = await this.workspaceGet<GitHubPullRequestRow[]>(
+      `https://api.github.com/repos/${repoFullName}/pulls?${params.toString()}`,
+      accessToken,
+      'pull request list',
+    );
+
+    return (payload ?? []).map((pr) => this.toPullRequestSummary(pr));
+  }
+
+  /**
+   * The changed files and diffs for one pull request.
+   *
+   * GitHub omits `patch` for binary files and for very large diffs. That is
+   * passed through as null rather than defaulted to an empty string, so the UI
+   * can say "diff not shown" instead of rendering a changed file as unchanged.
+   */
+  async getPullRequestFiles(
+    accessToken: string,
+    repoFullName: string,
+    pullNumber: number,
+    limit = 100,
+  ): Promise<GitHubPullRequestFile[]> {
+    const payload = await this.workspaceGet<
+      Array<{
+        filename?: string;
+        status?: string;
+        additions?: number;
+        deletions?: number;
+        changes?: number;
+        patch?: string;
+      }>
+    >(
+      `https://api.github.com/repos/${repoFullName}/pulls/${String(pullNumber)}/files?per_page=${String(Math.min(limit, 100))}`,
+      accessToken,
+      'pull request file list',
+    );
+
+    return (payload ?? []).map((file) => ({
+      filename: file.filename ?? '',
+      status: file.status ?? 'modified',
+      additions: file.additions ?? 0,
+      deletions: file.deletions ?? 0,
+      changes: file.changes ?? 0,
+      patch: file.patch ?? null,
+    }));
+  }
+
+  private toPullRequestSummary(
+    pr: GitHubPullRequestRow,
+  ): GitHubPullRequestSummary {
+    return {
+      number: pr.number,
+      title: pr.title ?? '',
+      state: pr.state === 'closed' ? 'closed' : 'open',
+      draft: pr.draft === true,
+      merged: pr.merged_at != null,
+      htmlUrl: pr.html_url ?? '',
+      headRef: pr.head?.ref ?? '',
+      baseRef: pr.base?.ref ?? '',
+      author: pr.user?.login ?? null,
+      authorAvatarUrl: pr.user?.avatar_url ?? null,
+      createdAt: pr.created_at ?? '',
+      updatedAt: pr.updated_at ?? '',
+      additions: pr.additions ?? null,
+      deletions: pr.deletions ?? null,
+      changedFiles: pr.changed_files ?? null,
+    };
   }
 
   async putFileContent(
