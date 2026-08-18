@@ -327,4 +327,51 @@ describe('ProjectsRepository', () => {
     expect(query).toContain('is_example');
     expect(values[values.length - 1]).toBe(false);
   });
+
+  /**
+   * Guards the 2026-08-18 change: being in a team is enough to SEE that team's
+   * projects. The old rule required the manager tier, so a developer added to a
+   * team saw an empty Repositories section and adding them looked broken.
+   *
+   * The second test is the one that matters most — widening what a member can
+   * READ must not widen what they can DELETE.
+   */
+  describe('project visibility', () => {
+    it('lets any ACTIVE workspace member see the project, not just managers', async () => {
+      await repo.listByUser('user-1');
+      const [query] = (db.query as jest.Mock).mock.calls[0] as [string];
+
+      expect(query).toContain('orgs.workspace_members');
+      expect(query).toContain("vm.member_status = 'active'");
+      // The manager-tier restriction is gone from the READ predicate.
+      expect(query).not.toContain(
+        "vm.role IN ('admin', 'delegated_lead')",
+      );
+    });
+
+    it('still requires an explicit role list for destructive paths', async () => {
+      await repo.deleteByIdAndUser('project-1', 'user-1', [
+        'admin',
+        'delegated_lead',
+      ]);
+      const [query, values] = (db.query as jest.Mock).mock.calls[0] as [
+        string,
+        unknown[],
+      ];
+
+      // Delete is gated on a role array passed by the caller — untouched by the
+      // read-visibility change.
+      expect(query).toContain('member.role = ANY($3::text[])');
+      expect(values).toContain('user-1');
+      expect(values[2]).toEqual(['admin', 'delegated_lead']);
+    });
+
+    it('keeps assignment as a separate route in, for members of no workspace', async () => {
+      await repo.listByUser('user-1');
+      const [query] = (db.query as jest.Mock).mock.calls[0] as [string];
+
+      expect(query).toContain('hierarchy.repository_assignments');
+      expect(query).toContain("vra.status IN ('active', 'pending')");
+    });
+  });
 });

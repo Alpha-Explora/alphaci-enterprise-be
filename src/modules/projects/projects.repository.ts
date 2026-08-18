@@ -11,10 +11,26 @@ import { DatabaseService } from '../database/database.service';
  * viewer is:
  *   - a GLOBAL admin (app_role 'admin', or any platform_admins row) — sees all;
  *   - the project owner;
- *   - a MANAGER (Lead/owner tier) of the owning group/workspace; or
+ *   - ANY active member of the owning group/workspace; or
  *   - actively assigned to the hierarchy repository linked to the project.
- * A plain group member with no assignment therefore only sees the repositories
- * they were explicitly assigned to (product decision 2026-07-14).
+ *
+ * THE MEMBERSHIP RULE CHANGED ON 2026-08-18. It previously required the
+ * manager tier ('admin' | 'delegated_lead'), so a developer added to a team saw
+ * an empty Repositories section until someone assigned them a repository one at
+ * a time — which made adding somebody to a team look like it had not worked.
+ * Being in a team now means seeing that team's work.
+ *
+ * WHAT THIS DOES NOT GRANT. Visibility is not authority and it is not GitHub
+ * access:
+ *   - every destructive and management path takes a separate role array (see
+ *     the `restrictToRoles` branch below) and is unchanged;
+ *   - push access to the repository still comes from a repository ASSIGNMENT,
+ *     which is what drives the GitHub team sync. A member who can see a project
+ *     here may still have no rights on GitHub.
+ * It does mean an ordinary team member can now read their team's code, pull
+ * requests and pipeline logs through the project workspace — which is the point
+ * of a shared team workspace, and the reason a personal workspace never has
+ * other members in it.
  */
 function projectVisibilitySql(userParam: string): string {
   return `
@@ -28,7 +44,6 @@ function projectVisibilitySql(userParam: string): string {
        WHERE vm.workspace_id = pp.workspace_id
          AND vm.user_id = ${userParam}
          AND vm.member_status = 'active'
-         AND vm.role IN ('admin', 'delegated_lead')
     )
     OR EXISTS (
       SELECT 1
