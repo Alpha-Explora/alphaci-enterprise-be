@@ -94,6 +94,18 @@ export class AdminController {
     return this.adminService.setAppRole(this.actorId(req), id, dto.role);
   }
 
+  /**
+   * Unpins a user from a manual role so GitHub org team membership drives it
+   * again. The new role lands on their next login or membership webhook.
+   */
+  @Post('users/:id/app-role/reset')
+  resetAppRole(
+    @Req() req: Request,
+    @Param('id', new ParseUUIDPipe()) id: string,
+  ) {
+    return this.adminService.resetAppRoleToGithub(this.actorId(req), id);
+  }
+
   @Get('feedback')
   listFeedback(@Req() req: Request, @Query('status') status?: FeedbackStatus) {
     return this.adminService.listFeedback(this.actorId(req), status);

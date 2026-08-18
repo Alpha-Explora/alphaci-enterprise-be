@@ -27,7 +27,31 @@ function isLocalDatabase(databaseUrl: string): boolean {
   }
 }
 
+/**
+ * Rebuilds a PEM from however the environment mangled it.
+ *
+ * Host env panels and .env files disagree about newlines, and the two
+ * conventions can end up combined: a value stored across real lines whose
+ * lines ALSO end in a literal `\n`. Expanding the escapes then doubles every
+ * break, producing a PEM with a blank line between each body line. OpenSSL
+ * rejects that with "PEM routines::bad end line", which surfaces from pg as
+ * "self-signed certificate in certificate chain" — pointing at the database
+ * instead of at the malformed variable, which is a long way to walk for a
+ * formatting problem.
+ *
+ * Expanding escapes, trimming each line and dropping the blanks reconstructs
+ * the canonical form from any of those shapes.
+ */
 function normalizeCaCert(caCert?: string): string | undefined {
   const trimmed = caCert?.trim();
-  return trimmed ? trimmed.replace(/\\n/g, '\n') : undefined;
+  if (!trimmed) return undefined;
+
+  const normalized = trimmed
+    .replace(/\\n/g, '\n')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+    .join('\n');
+
+  return normalized || undefined;
 }

@@ -1,17 +1,29 @@
 import { Module } from '@nestjs/common';
 
 import { SessionAuthGuard } from '../../common/guards/session-auth.guard';
+import { AdminModule } from '../admin/admin.module';
+import { AuditModule } from '../audit/audit.module';
 import { DatabaseModule } from '../database/database.module';
 import { PersistenceModule } from '../persistence/persistence.module';
 import { GithubInstallationsRepository } from './github-installations.repository';
 import { GithubController } from './github.controller';
+import { GithubTeamRoleReconcileWorker } from './github-team-role-reconcile.worker';
+import { GithubTeamRoleService } from './github-team-role.service';
 import { GithubWebhookController } from './github-webhook.controller';
 import { GithubService } from './github.service';
 
 @Module({
-  imports: [DatabaseModule, PersistenceModule],
+  // AdminModule supplies PlatformAdminsRepository (app_role reads/writes) and
+  // does not import GithubModule, so there is no cycle.
+  imports: [DatabaseModule, PersistenceModule, AdminModule, AuditModule],
   controllers: [GithubController, GithubWebhookController],
-  providers: [GithubService, GithubInstallationsRepository, SessionAuthGuard],
-  exports: [GithubService],
+  providers: [
+    GithubService,
+    GithubTeamRoleService,
+    GithubTeamRoleReconcileWorker,
+    GithubInstallationsRepository,
+    SessionAuthGuard,
+  ],
+  exports: [GithubService, GithubTeamRoleService],
 })
 export class GithubModule {}

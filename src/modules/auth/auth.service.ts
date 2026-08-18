@@ -6,6 +6,7 @@ import type { Request } from 'express';
 
 import type { AppConfig } from '../../config/app.config';
 import type { SessionUser } from '../../common/interfaces/session-user.interface';
+import { GithubTeamRoleService } from '../github/github-team-role.service';
 import { OAuthStateRepository } from '../persistence/oauth-state.repository';
 import { OutboxRepository } from '../persistence/outbox.repository';
 import { SubscriptionsRepository } from '../persistence/subscriptions.repository';
@@ -93,6 +94,7 @@ export class AuthService {
     private readonly subscriptionsRepository: SubscriptionsRepository,
     private readonly outboxRepository: OutboxRepository,
     private readonly oauthStateRepository: OAuthStateRepository,
+    private readonly githubTeamRoleService: GithubTeamRoleService,
   ) {
     this.config = this.configService.getOrThrow<AppConfig>('app');
     this.returnToOrigins = this.buildReturnToOrigins(
@@ -523,15 +525,28 @@ export class AuthService {
       return { kind: 'archived', profile, accessToken, isInternal };
     }
 
-    // Seed the GLOBAL hierarchy role (identity.app_users.app_role) from the
-    // user's ownership of the enforced org (Alpha-Explora): an org OWNER becomes
-    // a system 'admin', everyone else defaults to 'member'. Only computed for
-    // brand-new users — a returning user's role is owned by the Admin Console,
-    // so we skip the extra GitHub call and pass null (the repo leaves app_role
-    // untouched on the UPDATE path).
+    // Seed the GLOBAL hierarchy role (identity.app_users.app_role) for brand-new
+    // users only — a returning user's role is settled below, either by the team
+    // sync (GITHUB_TEAM_ROLE_SYNC='enforce') or not at all.
+    //
+    // Org ownership is resolved first because it outranks team membership in
+    // both modes: an owner is always 'admin'.
+    const isOrgOwner = existing
+      ? false
+      : (await this.resolveSeedAppRoleFromOrgOwnership(accessToken)) ===
+        'admin';
+
     const seedAppRole = existing
       ? null
-      : await this.resolveSeedAppRoleFromOrgOwnership(accessToken);
+      : ((await this.githubTeamRoleService.resolveSeedRole(
+          profile.login,
+          accessToken,
+          isOrgOwner,
+        )) ??
+        // Sync off, or GitHub unreadable — fall back to the legacy
+        // ownership-only seed so behaviour is unchanged when the feature is
+        // disabled.
+        (isOrgOwner ? 'admin' : 'member'));
 
     // Active or new — upsertGitHubUser handles both paths:
     // - no existing row: INSERT (new user, seeded app_role applied).
@@ -541,6 +556,28 @@ export class AuthService {
       isInternal,
       seedAppRole,
     });
+
+    // Returning users: re-derive app_role from GitHub team membership so a
+    // promotion to `team-lead` (or removal from it) takes effect on next
+    // sign-in. No-ops unless GITHUB_TEAM_ROLE_SYNC='enforce', and skips users
+    // pinned to app_role_source='manual'. Failures here must never block a
+    // login — the user keeps whatever role they already had.
+    if (existing) {
+      try {
+        await this.githubTeamRoleService.syncRoleForUser({
+          userId: user.id,
+          login: profile.login,
+          token: accessToken,
+          trigger: 'login',
+        });
+      } catch (error) {
+        this.logger.warn(
+          `Team role sync failed for ${profile.login} at login: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }
 
     const kind = existing ? 'active' : 'new';
     return { kind, user, accessToken };

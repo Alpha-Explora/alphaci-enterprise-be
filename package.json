@@ -22,7 +22,9 @@
     "test:e2e": "jest --config ./tests/e2e/jest-e2e.json",
     "db:hierarchy:verify": "node scripts/hierarchy-migrations.cjs verify",
     "db:hierarchy:apply": "node scripts/hierarchy-migrations.cjs apply",
-    "dummy:show": "node ./scripts/show-dummy-account.cjs"
+    "dummy:show": "node ./scripts/show-dummy-account.cjs",
+    "check:github-teams": "node --env-file=.env -r ts-node/register scripts/check-github-team-setup.ts",
+    "db:apply": "node --env-file=.env -r ts-node/register scripts/apply-migrations.ts"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",

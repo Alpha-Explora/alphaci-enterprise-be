@@ -7,6 +7,7 @@ import { UsersRepository } from '../persistence/users.repository.js';
 import { SubscriptionsRepository } from '../persistence/subscriptions.repository.js';
 import { OutboxRepository } from '../persistence/outbox.repository.js';
 import { OAuthStateRepository } from '../persistence/oauth-state.repository.js';
+import { GithubTeamRoleService } from '../github/github-team-role.service.js';
 import type { Request } from 'express';
 import type {
   SessionUser,
@@ -103,6 +104,20 @@ const makeSession = (data: Record<string, unknown> = {}) => ({
 const makeRequest = (sessionData: Record<string, unknown> = {}) =>
   ({ session: makeSession(sessionData) }) as unknown as Request;
 
+/** Inert by default: resolveSeedRole -> null makes AuthService fall back to
+ *  the legacy ownership-only seed, and syncRoleForUser is a no-op. */
+function makeGithubTeamRoleService(
+  overrides: Partial<GithubTeamRoleService> = {},
+): GithubTeamRoleService {
+  return {
+    mode: 'off',
+    enabled: false,
+    resolveSeedRole: jest.fn().mockResolvedValue(null),
+    syncRoleForUser: jest.fn().mockResolvedValue({ status: 'disabled' }),
+    ...overrides,
+  } as unknown as GithubTeamRoleService;
+}
+
 async function createService(
   withGitHub = true,
   oauthStateOverrides?: Partial<OAuthStateRepository>,
@@ -123,6 +138,12 @@ async function createService(
       { provide: SubscriptionsRepository, useValue: subsRepo },
       { provide: OutboxRepository, useValue: outboxRepo },
       { provide: OAuthStateRepository, useValue: oauthStateRepo },
+      // Sync disabled by default so these tests continue to exercise the
+      // legacy org-ownership seeding path unchanged.
+      {
+        provide: GithubTeamRoleService,
+        useValue: makeGithubTeamRoleService(),
+      },
     ],
   }).compile();
 

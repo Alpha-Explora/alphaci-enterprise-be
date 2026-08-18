@@ -17,14 +17,14 @@ import type { Request } from 'express';
 import { SessionAuthGuard } from '../../../common/guards/session-auth.guard';
 import { PlatformAdminGuard } from '../../admin/guards/platform-admin.guard';
 import { CreateGroupDto } from '../dto/create-group.dto';
-import { CreateInvitationDto } from '../dto/create-invitation.dto';
 import { QueryActivityDto } from '../dto/query-activity.dto';
 import { RemoveMemberDto } from '../dto/remove-member.dto';
 import { TransferGroupDto } from '../dto/transfer-group.dto';
 import { UpdateGroupDto } from '../dto/update-group.dto';
 import { UpdateMemberRoleDto } from '../dto/update-member-role.dto';
 import { GroupActivityService } from '../group-activity.service';
-import { GroupInvitationsService } from './group-invitations.service';
+import { AddGroupMemberDto } from '../dto/add-group-member.dto';
+import { GroupMembersService } from './group-members.service';
 import { GroupsService } from './groups.service';
 
 @Controller('groups')
@@ -32,7 +32,7 @@ import { GroupsService } from './groups.service';
 export class GroupsController {
   constructor(
     private readonly groupsService: GroupsService,
-    private readonly invitationsService: GroupInvitationsService,
+    private readonly membersService: GroupMembersService,
     private readonly activityService: GroupActivityService,
   ) {}
 
@@ -52,35 +52,6 @@ export class GroupsController {
   @Get()
   getMyGroups(@Req() req: Request) {
     return this.groupsService.getMyGroups(this.requireUserId(req));
-  }
-
-  // Declared before the ':groupId' routes so the literal 'invitations'
-  // segment is never captured as a groupId param.
-  @Get('invitations/mine')
-  listMyInvitations(@Req() req: Request) {
-    return this.invitationsService.listMyInvitations(this.requireUserId(req));
-  }
-
-  @Post('invitations/:invitationId/accept')
-  acceptInvitation(
-    @Req() req: Request,
-    @Param('invitationId') invitationId: string,
-  ) {
-    return this.invitationsService.acceptInvitation(
-      invitationId,
-      this.requireUserId(req),
-    );
-  }
-
-  @Post('invitations/:invitationId/decline')
-  declineInvitation(
-    @Req() req: Request,
-    @Param('invitationId') invitationId: string,
-  ) {
-    return this.invitationsService.declineInvitation(
-      invitationId,
-      this.requireUserId(req),
-    );
   }
 
   @Get(':groupId')
@@ -137,6 +108,22 @@ export class GroupsController {
     return this.groupsService.listMembers(groupId, this.requireUserId(req));
   }
 
+  /**
+   * Adds a member directly — no invitation, no pending state. The user is a
+   * member as soon as a lead calls this.
+   */
+  @Post(':groupId/members')
+  addMember(
+    @Req() req: Request,
+    @Param('groupId') groupId: string,
+    @Body() body: AddGroupMemberDto,
+  ) {
+    return this.membersService.addMember(groupId, this.requireUserId(req), {
+      userId: body.userId,
+      ...(body.role !== undefined && { role: body.role }),
+    });
+  }
+
   @Get(':groupId/eligible-users')
   searchEligibleUsers(
     @Req() req: Request,
@@ -177,40 +164,6 @@ export class GroupsController {
       this.requireUserId(req),
       memberId,
       body?.reason,
-    );
-  }
-
-  @Post(':groupId/invitations')
-  createInvitation(
-    @Req() req: Request,
-    @Param('groupId') groupId: string,
-    @Body() body: CreateInvitationDto,
-  ) {
-    return this.invitationsService.createInvitation(
-      groupId,
-      this.requireUserId(req),
-      body,
-    );
-  }
-
-  @Get(':groupId/invitations')
-  listInvitations(@Req() req: Request, @Param('groupId') groupId: string) {
-    return this.invitationsService.listInvitations(
-      groupId,
-      this.requireUserId(req),
-    );
-  }
-
-  @Delete(':groupId/invitations/:invitationId')
-  revokeInvitation(
-    @Req() req: Request,
-    @Param('groupId') groupId: string,
-    @Param('invitationId') invitationId: string,
-  ) {
-    return this.invitationsService.revokeInvitation(
-      groupId,
-      this.requireUserId(req),
-      invitationId,
     );
   }
 

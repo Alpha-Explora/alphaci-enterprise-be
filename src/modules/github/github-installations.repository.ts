@@ -126,6 +126,33 @@ export class GithubInstallationsRepository {
     return result.rows.map((row) => this.toInstallation(row));
   }
 
+  /**
+   * Installation id for an org, independent of any one user.
+   *
+   * Background jobs (the role-reconciliation worker) have no acting user, so
+   * they cannot go through getInstallationAccessTokenForUser. Any non-suspended
+   * row for the org yields the same installation id — the account is the org,
+   * not the user who happened to link it — so the newest is as good as any.
+   */
+  async findInstallationIdByAccountLogin(
+    accountLogin: string,
+  ): Promise<number | null> {
+    const result = await this.databaseService.query<{
+      installation_id: number;
+    }>(
+      `
+        SELECT installation_id
+        FROM github_app.github_installation_accounts
+        WHERE LOWER(account_login) = LOWER($1)
+          AND suspended_at IS NULL
+        ORDER BY created_at DESC
+        LIMIT 1;
+      `,
+      [accountLogin],
+    );
+    return result.rows[0]?.installation_id ?? null;
+  }
+
   async findByUserIdAndInstallationId(
     userId: string,
     installationId: number,

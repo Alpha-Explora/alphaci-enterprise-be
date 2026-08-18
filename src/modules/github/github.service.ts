@@ -122,6 +122,30 @@ export interface RepositoryDeletedEvent {
   repoFullName: string;
 }
 
+/**
+ * Emitted when a GitHub `membership` webhook reports someone being added to or
+ * removed from an org team. GithubTeamRoleService subscribes to re-derive that
+ * user's app_role immediately, so a promotion to `team-lead` — or, more
+ * importantly for security, a removal from it — does not wait for their next
+ * login.
+ *
+ * An event is used rather than a direct call because GithubTeamRoleService
+ * already depends on GithubService; calling back the other way would be a
+ * cycle. Same reasoning as REPOSITORY_DELETED_EVENT above.
+ */
+export const TEAM_MEMBERSHIP_CHANGED_EVENT = 'team.membership.changed';
+
+export interface TeamMembershipChangedEvent {
+  /** 'added' | 'removed' — GitHub's `action` on the membership event. */
+  action: string;
+  /** GitHub login of the affected user. */
+  login: string;
+  /** Slug of the team they were added to / removed from. */
+  teamSlug: string;
+  /** Installation id, used to mint a token for the follow-up team reads. */
+  installationId: number;
+}
+
 @Injectable()
 export class GithubService extends EventEmitter {
   private readonly logger = new Logger(GithubService.name);
@@ -236,6 +260,111 @@ export class GithubService extends EventEmitter {
       if (batch.length < 100) break;
     }
     return members;
+  }
+
+  /**
+   * Whether `login` is an active member of `teamSlug` in the enforced org.
+   *
+   * Uses GET /orgs/{org}/teams/{team_slug}/memberships/{username}, which needs
+   * either an App installation token with org `Members: Read` or a user token
+   * carrying `read:org` (already in GITHUB_SCOPE).
+   *
+   *   200 + state 'active'  → true   (a 'pending' invite is NOT membership)
+   *   404                   → false  (not a member, or team does not exist)
+   *   anything else         → null   ("unknown" — the caller must NOT treat
+   *                                   this as "not a member", or a transient
+   *                                   403/5xx would silently demote people)
+   *
+   * The null-vs-false distinction is the whole safety story for role sync.
+   */
+  async getTeamMembership(
+    teamSlug: string,
+    login: string,
+    token: string,
+  ): Promise<boolean | null> {
+    const org = this.getEnforcedOrg();
+    if (!org || !teamSlug || !login) return null;
+
+    try {
+      const response = await this.fetchWithRetry(
+        `https://api.github.com/orgs/${encodeURIComponent(org)}/teams/${encodeURIComponent(teamSlug)}/memberships/${encodeURIComponent(login)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/vnd.github+json',
+            'User-Agent': 'cicd-workflow-product',
+          },
+        },
+      );
+
+      if (response.status === 404) return false;
+      if (!response.ok) {
+        this.logger.warn(
+          `Team membership check for ${login} in ${org}/${teamSlug} returned ${String(response.status)} — treating as unknown. Check the App has org Members:Read.`,
+        );
+        return null;
+      }
+
+      const payload = (await response.json()) as { state?: string };
+      return payload.state === 'active';
+    } catch (error) {
+      this.logger.warn(
+        `Team membership check for ${login} in ${org}/${teamSlug} failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      return null;
+    }
+  }
+
+  /**
+   * Every active member login of `teamSlug` in the enforced org, using the
+   * acting user's installation token. Returns [] when no token is available or
+   * the read fails, matching listOrganizationMembers' graceful-degradation
+   * contract — callers reconciling roles must treat [] as "could not read"
+   * rather than "the team is empty".
+   */
+  async listTeamMembers(userId: string, teamSlug: string): Promise<string[]> {
+    const token = await this.getInstallationAccessTokenForUser(userId);
+    if (!token) return [];
+    return this.listTeamMembersWithToken(teamSlug, token);
+  }
+
+  /**
+   * Roster variant for callers that already hold a token — notably background
+   * jobs, which have no acting user to resolve an installation token from.
+   */
+  async listTeamMembersWithToken(
+    teamSlug: string,
+    token: string,
+  ): Promise<string[]> {
+    const org = this.getEnforcedOrg();
+    if (!org || !teamSlug || !token) return [];
+
+    const logins: string[] = [];
+    const maxPages = 5; // cap at 500 members, same bound as listOrganizationMembers
+    for (let page = 1; page <= maxPages; page += 1) {
+      const response = await this.fetchWithRetry(
+        `https://api.github.com/orgs/${encodeURIComponent(org)}/teams/${encodeURIComponent(teamSlug)}/members?per_page=100&page=${String(page)}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/vnd.github+json',
+            'User-Agent': 'cicd-workflow-product',
+          },
+        },
+      );
+      if (!response.ok) {
+        this.logger.warn(
+          `Could not list members of team ${org}/${teamSlug} (${String(response.status)}) — check the App has org Members:Read`,
+        );
+        break;
+      }
+      const batch = (await response.json()) as Array<{ login: string }>;
+      for (const item of batch) logins.push(item.login);
+      if (batch.length < 100) break;
+    }
+    return logins;
   }
 
   /**
@@ -607,9 +736,7 @@ export class GithubService extends EventEmitter {
     if (eventName === 'repository' && body['action'] === 'deleted') {
       const repository = body['repository'];
       if (repository && typeof repository === 'object') {
-        const fullName = (repository as Record<string, unknown>)[
-          'full_name'
-        ];
+        const fullName = (repository as Record<string, unknown>)['full_name'];
         if (typeof fullName === 'string' && fullName.trim().length > 0) {
           const event: RepositoryDeletedEvent = { repoFullName: fullName };
           this.emit(REPOSITORY_DELETED_EVENT, event);
@@ -632,6 +759,43 @@ export class GithubService extends EventEmitter {
       (installation as Record<string, unknown>)['id'],
     );
     if (!Number.isInteger(installationId) || installationId < 1) return;
+
+    // Org team membership changed — re-derive the affected user's app_role.
+    // Emitted for BOTH 'added' and 'removed': a removal from `team-lead` must
+    // revoke create rights promptly, which is the security-relevant direction.
+    if (eventName === 'membership') {
+      const action = body['action'];
+      const member = body['member'];
+      const team = body['team'];
+      const login =
+        member && typeof member === 'object'
+          ? (member as Record<string, unknown>)['login']
+          : undefined;
+      const teamSlug =
+        team && typeof team === 'object'
+          ? (team as Record<string, unknown>)['slug']
+          : undefined;
+
+      if (
+        typeof action === 'string' &&
+        typeof login === 'string' &&
+        login.trim().length > 0 &&
+        typeof teamSlug === 'string'
+      ) {
+        const event: TeamMembershipChangedEvent = {
+          action,
+          login,
+          teamSlug,
+          installationId,
+        };
+        this.emit(TEAM_MEMBERSHIP_CHANGED_EVENT, event);
+      } else {
+        this.logger.warn(
+          'Ignoring membership webhook with missing action/member.login/team.slug',
+        );
+      }
+      return;
+    }
 
     if (eventName === 'installation') {
       const action = body['action'];

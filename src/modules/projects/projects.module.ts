@@ -5,6 +5,8 @@ import { SubscriptionGuard } from '../../common/guards/subscription.guard';
 import { AuditModule } from '../audit/audit.module';
 import { CatalogModule } from '../catalog/catalog.module';
 import { DatabaseModule } from '../database/database.module';
+import { HierarchyProjectLinkRepository } from '../hierarchy/project-link/hierarchy-project-link.repository';
+import { HierarchyProjectLinkService } from '../hierarchy/project-link/hierarchy-project-link.service';
 import { GithubModule } from '../github/github.module';
 import { CiModule } from '../ci/ci.module';
 import { EnvProvisioningModule } from '../env-provisioning/env-provisioning.module';
@@ -51,6 +53,11 @@ import { ProjectsService } from './projects.service';
     LocalCiRunsProvider,
     LocalDeploymentHistoryProvider,
     ProjectsRepository,
+    // Registered directly rather than by importing HierarchyModule — the same
+    // pattern HierarchyModule uses for ProjectsRepository, and for the same
+    // reason: it keeps Projects and Hierarchy from importing each other.
+    HierarchyProjectLinkRepository,
+    HierarchyProjectLinkService,
     ProjectDashboardSnapshotsRepository,
     ProjectSyncFindingsRepository,
     ProjectWorkflowSettingsRepository,

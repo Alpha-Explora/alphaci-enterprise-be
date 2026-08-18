@@ -25,19 +25,22 @@ export const GROUP_ROLE_LABELS: Record<GroupRole, string> = {
 /** Roles that may invite/manage members, systems, delivery projects, repositories. */
 export const GROUP_MANAGER_ROLES: GroupRole[] = ['admin', 'delegated_lead'];
 
-/** Roles allowed on an invitation body — ownership only changes via transfer (plan §2.4). */
-export type InvitableRole = Exclude<GroupRole, 'admin'>;
+/**
+ * Roles a lead may grant when adding someone to a group — ownership only
+ * changes via transfer (plan §2.4).
+ *
+ * Named for the grant, not the delivery mechanism: members are added directly
+ * and there is no invitation step.
+ */
+export type GrantableRole = Exclude<GroupRole, 'admin'>;
 
 export type LifecycleStatus = 'active' | 'archived';
 
+/**
+ * 'invited' is retained only because historical rows may still carry it; no
+ * code path produces it now that membership is granted directly.
+ */
 export type MemberStatus = 'invited' | 'active' | 'removed';
-
-export type InvitationStatus =
-  | 'pending'
-  | 'accepted'
-  | 'declined'
-  | 'revoked'
-  | 'expired';
 
 export type RepositoryStatus = 'pending' | 'active' | 'archived';
 
@@ -92,11 +95,11 @@ export const HIERARCHY_EVENT_CODES = {
   groupReopened: 'hierarchy.group.reopened',
   groupDeleted: 'hierarchy.group.deleted',
   groupManagerTransferred: 'hierarchy.group.manager_transferred',
-  invitationCreated: 'hierarchy.group.invitation_created',
-  invitationAccepted: 'hierarchy.group.invitation_accepted',
-  invitationDeclined: 'hierarchy.group.invitation_declined',
-  invitationRevoked: 'hierarchy.group.invitation_revoked',
-  invitationExpired: 'hierarchy.group.invitation_expired',
+  // Members are added directly by a lead — there is no invitation step, so no
+  // invitation_* codes are emitted. Historical rows may still carry them; the
+  // activity feed's 'membership' filter matches the 'hierarchy.group.member_'
+  // prefix, which covers this one.
+  memberAdded: 'hierarchy.group.member_added',
   memberRoleChanged: 'hierarchy.group.member_role_changed',
   memberRemoved: 'hierarchy.group.member_removed',
   systemCreated: 'hierarchy.system.created',

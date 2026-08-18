@@ -36,6 +36,7 @@ import {
   type RepositoryDeletedEvent,
 } from '../github/github.service';
 import { ProjectDeploymentProvisioningService } from '../env-provisioning/project-deployment-provisioning.service';
+import { HierarchyProjectLinkService } from '../hierarchy/project-link/hierarchy-project-link.service';
 import {
   WorkflowHistoryRepository,
   type WorkflowHistoryEntry,
@@ -276,6 +277,16 @@ export interface ProjectOverviewResponse {
     deploymentHistory: boolean;
     driftDetection: boolean;
   };
+  /**
+   * The hierarchy.repositories id this project is linked to, or null.
+   *
+   * Developer assignments hang off hierarchy.repositories, not off
+   * provisioned_projects, so without this id the project page has no way to
+   * address its own access panel. Null means "no assignment surface for this
+   * project" — a personal-workspace project, or one created before the link
+   * existed — and the UI hides the entry point rather than guessing a URL.
+   */
+  hierarchyRepositoryId: string | null;
 }
 
 export interface ProjectSyncSnapshotResponse {
@@ -400,6 +411,11 @@ export class ProjectsService {
     private readonly notificationEventsService?: NotificationEventsService,
     @Optional()
     private readonly workspaceAccessService?: WorkspaceAccessService,
+    // Optional and last, like every collaborator above it: the existing specs
+    // construct ProjectsService positionally, and an absent linker simply
+    // means group projects are not linked (the migration backfill still is).
+    @Optional()
+    private readonly hierarchyProjectLinkService?: HierarchyProjectLinkService,
   ) {
     // GithubModule cannot import ProjectsModule (that would create a
     // Projects → Github → Projects cycle), so GithubService can't inject
@@ -587,7 +603,7 @@ export class ProjectsService {
       // of ALPHACI_TOKEN. Secrets are installed strictly so a token without
       // `secrets:write` aborts provisioning here rather than producing a repo
       // whose pipelines can never authenticate.
-      row = await this.projectsRepository.create({
+      row = await this.createProjectRow({
         userId,
         workspaceId: await this.resolveWorkspaceIdForCreate(
           userId,
@@ -841,7 +857,7 @@ export class ProjectsService {
       // repo Actions secrets BEFORE pushing any workflow YAML — both pipeline
       // chains authenticate with the same repo-level ALPHACI_TOKEN, and the
       // access-gate runs as soon as a workflow file is pushed.
-      backendRow = await this.projectsRepository.create({
+      backendRow = await this.createProjectRow({
         userId,
         workspaceId: await this.resolveWorkspaceIdForCreate(
           userId,
@@ -943,7 +959,7 @@ export class ProjectsService {
       // 10. Save frontend DB row if the push succeeded
       if (frontendPushResult !== undefined) {
         try {
-          await this.projectsRepository.create({
+          await this.createProjectRow({
             userId,
             workspaceId: await this.resolveWorkspaceIdForCreate(
               userId,
@@ -1083,7 +1099,7 @@ export class ProjectsService {
     const workflowPath =
       workflowFiles[0]?.path ?? `.github/workflows/${outputFileName}`;
 
-    const row = await this.projectsRepository.create({
+    const row = await this.createProjectRow({
       userId,
       workspaceId: await this.resolveWorkspaceIdForCreate(
         userId,
@@ -1215,6 +1231,7 @@ export class ProjectsService {
       envMetadata,
       workflowHistory,
       latestSnapshot,
+      hierarchyRepositoryId,
     ] = await Promise.all([
       this.loadCiTokenStatus(projectId),
       this.deploymentTargetsRepository?.listDeploymentTargets(projectId) ??
@@ -1227,6 +1244,8 @@ export class ProjectsService {
         limit: 5,
       }) ?? Promise.resolve([]),
       this.dashboardSnapshotsRepository?.findLatestByProject(projectId) ??
+        Promise.resolve(null),
+      this.hierarchyProjectLinkService?.getLinkedRepositoryId(projectId) ??
         Promise.resolve(null),
     ]);
 
@@ -1280,6 +1299,7 @@ export class ProjectsService {
         deploymentHistory: this.deploymentHistoryEnabled(),
         driftDetection: this.driftDetectionEnabled(),
       },
+      hierarchyRepositoryId,
     };
   }
 
@@ -3288,7 +3308,7 @@ export class ProjectsService {
 
       // Persist + token + secrets before the workflow push so the first
       // access-gate run can authenticate (see createProject for rationale).
-      backendRow = await this.projectsRepository.create({
+      backendRow = await this.createProjectRow({
         userId,
         workspaceId: await this.resolveWorkspaceIdForCreate(
           userId,
@@ -3454,7 +3474,7 @@ export class ProjectsService {
         frontendWorkflowFiles[0]?.path ??
         `.github/workflows/${frontendOutputFileName}`;
 
-      feRow = await this.projectsRepository.create({
+      feRow = await this.createProjectRow({
         userId,
         workspaceId: await this.resolveWorkspaceIdForCreate(
           userId,
@@ -3765,6 +3785,39 @@ export class ProjectsService {
       );
     }
     return workspaceId;
+  }
+
+  /**
+   * Single choke point for creating a provisioned_projects row.
+   *
+   * Wraps ProjectsRepository.create so every create path — single service,
+   * microservices backend/frontend, multi-repo, and the existing-repo setup
+   * flow — also gets its hierarchy link. Previously only repositories created
+   * through the create-system path had a hierarchy.repositories row, which
+   * meant a form-created group project could never have a developer assigned
+   * to it (assignments reference hierarchy.repositories).
+   *
+   * The link is best-effort and never throws: the GitHub repo, branches, and
+   * workflow commit have all already succeeded by this point, and failing here
+   * would report a working project as a failure — and let the compensation
+   * path delete it.
+   */
+  private async createProjectRow(
+    input: Parameters<ProjectsRepository['create']>[0],
+  ): Promise<Awaited<ReturnType<ProjectsRepository['create']>>> {
+    const row = await this.projectsRepository.create(input);
+
+    await this.hierarchyProjectLinkService?.ensureLink({
+      projectId: row.id,
+      workspaceId: input.workspaceId ?? null,
+      name: input.serviceName,
+      repoFullName: input.repoFullName,
+      visibility: input.visibility ?? null,
+      createdBy: input.userId,
+      projectStatus: input.status ?? 'provisioning',
+    });
+
+    return row;
   }
 
   /**

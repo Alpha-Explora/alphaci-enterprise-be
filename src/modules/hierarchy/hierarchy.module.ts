@@ -28,7 +28,7 @@ import { GithubTeamAccessLiveProvider } from './github-sync/providers/github-tea
 import { GithubTeamAccessStubProvider } from './github-sync/providers/github-team-access.stub';
 import { GroupActivityRepository } from './group-activity.repository';
 import { GroupActivityService } from './group-activity.service';
-import { GroupInvitationsService } from './groups/group-invitations.service';
+import { GroupMembersService } from './groups/group-members.service';
 import { GroupsController } from './groups/groups.controller';
 import { GroupsRepository } from './groups/groups.repository';
 import { GroupsService } from './groups/groups.service';
@@ -67,7 +67,7 @@ import { SystemsService } from './systems/systems.service';
     HierarchyAccessService,
     GroupsRepository,
     GroupsService,
-    GroupInvitationsService,
+    GroupMembersService,
     GroupActivityRepository,
     GroupActivityService,
     SystemsRepository,
