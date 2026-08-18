@@ -82,6 +82,12 @@ const makeGithubService = () =>
     setActionsSecretStrict: jest.fn().mockResolvedValue(undefined),
     deleteRepo: jest.fn().mockResolvedValue(true),
     deleteRepoForUser: jest.fn().mockResolvedValue(undefined),
+    // Onboarding an existing repository (2026-08-18). Defaults describe a
+    // clean repo: no secrets set, no uat branch yet.
+    listActionsSecretNames: jest.fn().mockResolvedValue(new Set<string>()),
+    deleteActionsSecret: jest.fn().mockResolvedValue(undefined),
+    branchExists: jest.fn().mockResolvedValue(false),
+    requiresPullRequestToPush: jest.fn().mockResolvedValue(false),
   }) as unknown as GithubService;
 
 const makeProjectsRepository = () =>
@@ -287,6 +293,11 @@ describe('ProjectsService', () => {
     createBranch: jest.Mock;
     applyBranchProtection: jest.Mock;
     setActionsSecretStrict: jest.Mock;
+    setActionsSecret: jest.Mock;
+    getRepo: jest.Mock;
+    branchExists: jest.Mock;
+    listActionsSecretNames: jest.Mock;
+    deleteActionsSecret: jest.Mock;
   };
   let projectDeploymentProvisioningService: {
     provisionForProject: jest.Mock;
@@ -315,6 +326,11 @@ jobs:
       createBranch: jest.Mock;
       applyBranchProtection: jest.Mock;
       setActionsSecretStrict: jest.Mock;
+      setActionsSecret: jest.Mock;
+      getRepo: jest.Mock;
+      branchExists: jest.Mock;
+      listActionsSecretNames: jest.Mock;
+      deleteActionsSecret: jest.Mock;
     };
     projectDeploymentProvisioningService = {
       provisionForProject: jest.fn().mockResolvedValue({
@@ -902,6 +918,181 @@ jobs:
     expect(packageWorkflow?.[4]).toContain('deploy-vercel-frontend-main');
     expect(packageWorkflow?.[4]).toContain('vercel-deploy.yml');
     expect(packageWorkflow?.[4]).toContain('VERCEL_FRONTEND_TOKEN');
+  });
+
+
+  /*
+   * ONBOARDING AN EXISTING REPOSITORY (2026-08-18).
+   *
+   * Four defects this pins shut: the commit branch was hardcoded to 'main' so
+   * any repo on `master` failed; a failed setup left ALPHACI_TOKEN behind in
+   * somebody's repository; SonarCloud config was overwritten without asking;
+   * and `uat` was never created, so the staging and promotion half of the
+   * pipeline stayed dormant with no error anywhere.
+   */
+  describe('setupProject: existing repositories', () => {
+    function pushedBranches(): string[] {
+      const calls = (
+        service as unknown as { pushWorkflowFile: jest.Mock }
+      ).pushWorkflowFile.mock.calls as unknown[][];
+      // (token, owner, repo, path, content, message, branch)
+      return calls.map((call) => call[6] as string);
+    }
+
+    it('commits to the repository OWN default branch, not a hardcoded main', async () => {
+      githubServiceMock.getRepo = jest
+        .fn()
+        .mockResolvedValue({ defaultBranch: 'master' });
+
+      await service.setupProject('user-1', 'oauth-token', {
+        repoFullName: 'tone/orders-api',
+        templateId: 'be-nestjs',
+        serviceName: 'orders-api',
+      });
+
+      const branches = pushedBranches();
+      expect(branches.length).toBeGreaterThan(0);
+      expect(new Set(branches)).toEqual(new Set(['master']));
+    });
+
+    it('falls back to main when the default branch cannot be read', async () => {
+      githubServiceMock.getRepo = jest
+        .fn()
+        .mockRejectedValue(new Error('403'));
+
+      await service.setupProject('user-1', 'oauth-token', {
+        repoFullName: 'tone/orders-api',
+        templateId: 'be-nestjs',
+        serviceName: 'orders-api',
+      });
+
+      expect(new Set(pushedBranches())).toEqual(new Set(['main']));
+    });
+
+    it('creates uat from the default branch so the staging half can run', async () => {
+      githubServiceMock.getRepo = jest
+        .fn()
+        .mockResolvedValue({ defaultBranch: 'master' });
+
+      await service.setupProject('user-1', 'oauth-token', {
+        repoFullName: 'tone/orders-api',
+        templateId: 'be-nestjs',
+        serviceName: 'orders-api',
+      });
+
+      expect(githubServiceMock.createBranch).toHaveBeenCalledWith(
+        expect.any(String),
+        'tone',
+        'orders-api',
+        'uat',
+        'master',
+      );
+    });
+
+    it('leaves an existing uat branch alone', async () => {
+      githubServiceMock.branchExists = jest.fn().mockResolvedValue(true);
+
+      await service.setupProject('user-1', 'oauth-token', {
+        repoFullName: 'tone/orders-api',
+        templateId: 'be-nestjs',
+        serviceName: 'orders-api',
+      });
+
+      expect(githubServiceMock.createBranch).not.toHaveBeenCalled();
+    });
+
+    it('still completes when uat cannot be created — a main-only pipeline beats no pipeline', async () => {
+      githubServiceMock.createBranch = jest
+        .fn()
+        .mockRejectedValue(new Error('protected'));
+
+      await expect(
+        service.setupProject('user-1', 'oauth-token', {
+          repoFullName: 'tone/orders-api',
+          templateId: 'be-nestjs',
+          serviceName: 'orders-api',
+        }),
+      ).resolves.toBeDefined();
+    });
+
+    it('does not overwrite SonarCloud secrets the repository already has', async () => {
+      githubServiceMock.listActionsSecretNames = jest
+        .fn()
+        .mockResolvedValue(new Set(['SONAR_TOKEN']));
+
+      await service.setupProject('user-1', 'oauth-token', {
+        repoFullName: 'tone/orders-api',
+        templateId: 'be-nestjs',
+        serviceName: 'orders-api',
+      });
+
+      const written = (
+        githubServiceMock.setActionsSecret as unknown as jest.Mock
+      ).mock.calls.map((call) => call[3] as string);
+      expect(written).not.toContain('SONAR_TOKEN');
+      expect(written).not.toContain('SONAR_PROJECT_KEY');
+    });
+
+    it('removes the secrets it wrote when the push fails', async () => {
+      (
+        service as unknown as { pushWorkflowFile: jest.Mock }
+      ).pushWorkflowFile = jest
+        .fn()
+        .mockRejectedValue(new Error('branch not found'));
+
+      await expect(
+        service.setupProject('user-1', 'oauth-token', {
+          repoFullName: 'tone/orders-api',
+          templateId: 'be-nestjs',
+          serviceName: 'orders-api',
+        }),
+      ).rejects.toThrow();
+
+      const removed = (
+        githubServiceMock.deleteActionsSecret as unknown as jest.Mock
+      ).mock.calls.map((call) => call[3] as string);
+      expect(removed).toEqual(
+        expect.arrayContaining(['ALPHACI_TOKEN', 'ALPHACI_REPORT_URL']),
+      );
+    });
+
+    it('never deletes SONAR secrets on cleanup — it may not have written them', async () => {
+      (
+        service as unknown as { pushWorkflowFile: jest.Mock }
+      ).pushWorkflowFile = jest.fn().mockRejectedValue(new Error('nope'));
+
+      await expect(
+        service.setupProject('user-1', 'oauth-token', {
+          repoFullName: 'tone/orders-api',
+          templateId: 'be-nestjs',
+          serviceName: 'orders-api',
+        }),
+      ).rejects.toThrow();
+
+      const removed = (
+        githubServiceMock.deleteActionsSecret as unknown as jest.Mock
+      ).mock.calls.map((call) => call[3] as string);
+      expect(removed).not.toContain('SONAR_TOKEN');
+    });
+
+    it('reports the original failure, not a cleanup error', async () => {
+      (
+        service as unknown as { pushWorkflowFile: jest.Mock }
+      ).pushWorkflowFile = jest
+        .fn()
+        .mockRejectedValue(new Error('branch not found'));
+      githubServiceMock.deleteActionsSecret = jest
+        .fn()
+        .mockRejectedValue(new Error('no secrets:write'));
+
+      await expect(
+        service.setupProject('user-1', 'oauth-token', {
+          repoFullName: 'tone/orders-api',
+          templateId: 'be-nestjs',
+          serviceName: 'orders-api',
+        }),
+      ).rejects.toThrow('branch not found');
+    });
   });
 
   it('uses a linked GitHub App installation token for existing private repo setup without provider provisioning', async () => {

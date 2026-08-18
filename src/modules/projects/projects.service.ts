@@ -1092,6 +1092,19 @@ export class ProjectsService {
       dto.repoFullName,
     );
 
+    /*
+     * 2b. ASK THE REPOSITORY WHICH BRANCH IT LIVES ON.
+     *
+     * This used to be hardcoded to 'main' at the push, so every existing repo
+     * on `master` or `develop` failed — after its secrets had already been
+     * written. The repository is the authority on its own default branch.
+     */
+    const targetBranch = await this.resolveSetupBranch(
+      accessToken,
+      owner,
+      repo,
+    );
+
     // 3. Persist the project, issue the CI token, and install the Actions
     // secrets BEFORE pushing the workflow file so the access-gate's first run
     // on the existing repo can authenticate. Secrets are installed strictly so
@@ -1133,16 +1146,32 @@ export class ProjectsService {
         'ALPHACI_REPORT_URL',
         ALPHACI_REPORT_URL,
       );
-      await this.installSonarSecrets(accessToken, owner, repo);
+      // preserveExisting: this is somebody's existing repository, and it may
+      // already be wired to its own SonarCloud project.
+      await this.installSonarSecrets(accessToken, owner, repo, true);
 
-      // 4. Push workflow file to the existing repo's default branch (main) now
+      // 4. Push the workflow files to the repository's OWN default branch now
       // that the secrets exist, then record the commit.
       ({ commitSha, commitUrl } = await this.pushWorkflowFiles(
         accessToken,
         owner,
         repo,
         workflowFiles,
+        targetBranch,
       ));
+
+      /*
+       * 5. Give the promotion model somewhere to run.
+       *
+       * The generated pipeline only knows `uat` and `main`: everything gated on
+       * uat — the staging deploy and the promotion pull request — simply never
+       * fires without that branch, and skipped jobs look identical to
+       * not-applicable ones in the Actions UI. Creating it here is what stops
+       * an onboarded repo from running at half power for reasons nobody can
+       * see. Best-effort: a repo that cannot take the branch still has a
+       * working main-branch pipeline, which is better than failing the setup.
+       */
+      await this.ensureUatBranch(accessToken, owner, repo, targetBranch);
       await this.projectsRepository.updateStatus(
         row.id,
         'provisioned',
@@ -1150,8 +1179,16 @@ export class ProjectsService {
         commitUrl,
       );
     } catch (error) {
-      // The repo is the user's own existing repo — never delete it; just remove
-      // the half-created tracking row so a retry starts clean.
+      /*
+       * The repo is the user's own existing repo — never delete it. Remove the
+       * half-created tracking row AND the secrets we wrote, so a failed setup
+       * leaves nothing behind.
+       *
+       * Previously only the row was removed, so a repo that rejected the push
+       * (wrong default branch, protected branch) was left holding an
+       * ALPHACI_TOKEN and report URL belonging to a project that no longer
+       * existed — credentials with no owner, invisible from this UI.
+       */
       try {
         await this.projectsRepository.deleteByIdAndUser(row.id, userId);
       } catch (cleanupError) {
@@ -1159,6 +1196,7 @@ export class ProjectsService {
           `setupProject: failed to delete project row ${row.id}: ${String(cleanupError)}`,
         );
       }
+      await this.removeSetupSecrets(accessToken, owner, repo);
       throw error;
     }
 
@@ -2393,10 +2431,116 @@ export class ProjectsService {
    * a missing central Sonar configuration or a secret-write hiccup must not
    * fail repository creation.
    */
+  /**
+   * The branch an onboarded repository's workflows belong on.
+   *
+   * Asks GitHub for the repository's own default branch and falls back to
+   * 'main' only when that cannot be read — a fallback, never an assumption.
+   */
+  private async resolveSetupBranch(
+    accessToken: string,
+    owner: string,
+    repo: string,
+  ): Promise<string> {
+    try {
+      const repository = await this.githubService.getRepo(
+        accessToken,
+        owner,
+        repo,
+      );
+      const branch = repository.defaultBranch?.trim();
+      if (branch) return branch;
+    } catch (error) {
+      this.logger.warn(
+        `setupProject: could not read the default branch for ${owner}/${repo}, assuming 'main': ${String(error)}`,
+      );
+    }
+    return 'main';
+  }
+
+  /**
+   * Creates `uat` from the repository's default branch when it is missing.
+   *
+   * Best-effort by design. A repository that cannot take the branch — no
+   * permission, a protection rule, a name already used by a tag — still ends
+   * up with a working default-branch pipeline, and failing the whole
+   * onboarding over the staging half would be the worse trade.
+   */
+  private async ensureUatBranch(
+    accessToken: string,
+    owner: string,
+    repo: string,
+    fromBranch: string,
+  ): Promise<void> {
+    try {
+      if (
+        await this.githubService.branchExists(accessToken, owner, repo, 'uat')
+      ) {
+        return;
+      }
+      await this.githubService.createBranch(
+        accessToken,
+        owner,
+        repo,
+        'uat',
+        fromBranch,
+      );
+      this.logger.log(
+        `setupProject: created uat from ${fromBranch} on ${owner}/${repo}`,
+      );
+    } catch (error) {
+      this.logger.warn(
+        `setupProject: could not create uat on ${owner}/${repo}; the staging half of the pipeline will not run until it exists: ${String(error)}`,
+      );
+    }
+  }
+
+  /**
+   * Undoes the secrets written during a failed setup.
+   *
+   * Only ever removes the two secrets THIS product owns. SONAR_* is deliberately
+   * excluded: installSonarSecrets leaves a repository's own Sonar configuration
+   * alone, so deleting those here could destroy something we never wrote.
+   *
+   * Never throws — this runs inside a catch block, and losing the original
+   * error to a cleanup failure would hide the reason setup failed.
+   */
+  private async removeSetupSecrets(
+    accessToken: string,
+    owner: string,
+    repo: string,
+  ): Promise<void> {
+    for (const name of ['ALPHACI_TOKEN', 'ALPHACI_REPORT_URL']) {
+      try {
+        await this.githubService.deleteActionsSecret(
+          accessToken,
+          owner,
+          repo,
+          name,
+        );
+      } catch (error) {
+        this.logger.warn(
+          `setupProject: could not remove ${name} from ${owner}/${repo} after a failed setup: ${String(error)}`,
+        );
+      }
+    }
+  }
+
+  /**
+   * Installs the SonarCloud secrets this product's Quality stage reads.
+   *
+   * `preserveExisting` is for ONBOARDING an existing repository. A repo that
+   * already uses SonarCloud has its own SONAR_TOKEN and SONAR_PROJECT_KEY
+   * pointing at its own project with its own history; silently replacing them
+   * would redirect analysis to a new key and is not undoable from this UI. On
+   * a repository this product just created there is nothing to preserve, so
+   * that path keeps overwriting.
+   */
   private async installSonarSecrets(
     accessToken: string,
     owner: string,
     repo: string,
+    preserveExisting = false,
   ): Promise<void> {
     const managed =
       this.configService?.getOrThrow<AppConfig>('app')?.envProvisioning
@@ -2406,6 +2550,21 @@ export class ProjectsService {
     if (!sonarToken || !sonarOrganization) {
       this.logger.warn(
         `SonarCloud secrets not installed for ${owner}/${repo}: ALPHACI_SONAR_TOKEN / ALPHACI_SONAR_ORGANIZATION are not configured`,
+      );
+      return;
+    }
+
+    const existingSecrets = preserveExisting
+      ? await this.githubService.listActionsSecretNames(accessToken, owner, repo)
+      : new Set<string>();
+
+    const alreadyConfigured = ['SONAR_TOKEN', 'SONAR_PROJECT_KEY'].some((name) =>
+      existingSecrets.has(name),
+    );
+
+    if (alreadyConfigured) {
+      this.logger.log(
+        `SonarCloud secrets left untouched for ${owner}/${repo}: the repository already defines its own.`,
       );
       return;
     }
@@ -2868,6 +3027,7 @@ export class ProjectsService {
     owner: string,
     repo: string,
     workflowFiles: StagedWorkflowFile[],
+    branch = 'main',
   ): Promise<{ commitSha: string; commitUrl: string | null }> {
     let latest: { commitSha: string; commitUrl: string | null } | null = null;
 
@@ -2878,6 +3038,8 @@ export class ProjectsService {
         repo,
         file.path,
         file.yaml,
+        undefined,
+        branch,
       );
     }
 
@@ -2902,14 +3064,28 @@ export class ProjectsService {
     filePath: string,
     content: string,
     commitMessage = 'ci: add ALPHACI workflow',
+    /*
+     * The branch to commit to.
+     *
+     * Defaulted rather than required so the new-repository flows — which build
+     * `main` themselves moments earlier — stay unchanged. It exists for
+     * ONBOARDING: an existing repository's default branch is whatever its
+     * owner chose, and this was previously hardcoded to 'main', so every repo
+     * on `master` or `develop` failed the push after its secrets had already
+     * been written.
+     */
+    branch = 'main',
   ): Promise<{ commitSha: string; commitUrl: string | null }> {
     const encodedContent = Buffer.from(content, 'utf8').toString('base64');
 
     // Check whether the file already exists so we can supply its sha (required for updates)
     let existingSha: string | undefined;
     try {
+      // Read the sha FROM THE TARGET BRANCH. Without ?ref this asked the
+      // default branch, so updating a file on any other branch would send a
+      // sha that does not belong there and GitHub would reject the write.
       const checkRes = await fetch(
-        `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}`,
+        `https://api.github.com/repos/${owner}/${repo}/contents/${filePath}?ref=${encodeURIComponent(branch)}`,
         {
           headers: {
             Authorization: `Bearer ${accessToken}`,
@@ -2930,7 +3106,7 @@ export class ProjectsService {
     const body: Record<string, unknown> = {
       message: commitMessage,
       content: encodedContent,
-      branch: 'main',
+      branch,
     };
 
     if (existingSha) {

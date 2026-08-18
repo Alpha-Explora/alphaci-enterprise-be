@@ -23,6 +23,13 @@ const makeGithubService = () =>
       }),
     ),
     createBranch: jest.fn().mockResolvedValue(undefined),
+    // Preflight reads (added 2026-08-18). Defaults describe the CLEAN repo:
+    // default branch main, no protection, no Sonar, no uat — so the existing
+    // assertions keep describing the same repository they always did.
+    getRepo: jest.fn().mockResolvedValue({ defaultBranch: 'main' }),
+    requiresPullRequestToPush: jest.fn().mockResolvedValue(false),
+    listActionsSecretNames: jest.fn().mockResolvedValue(new Set<string>()),
+    branchExists: jest.fn().mockResolvedValue(false),
     putFileContent: jest.fn().mockResolvedValue({
       commitSha: 'commit-sha',
       commitUrl: 'https://github.com/tone/app/commit/commit-sha',
@@ -257,4 +264,118 @@ jobs:
       }),
     ).rejects.toThrow('Workflow template could not be parsed');
   });
+
+  /*
+   * ONBOARDING AN EXISTING REPOSITORY (2026-08-18).
+   *
+   * Every case below was a real defect before this suite existed: the push
+   * branch was hardcoded to 'main', a failed setup left its secrets behind,
+   * SonarCloud config was silently overwritten, and `uat` was never created so
+   * half the pipeline sat dormant with no error.
+   */
+  describe('discover: preflight', () => {
+    it('uses the repository OWN default branch instead of assuming main', async () => {
+      githubService.getRepo = jest
+        .fn()
+        .mockResolvedValue({ defaultBranch: 'master' });
+
+      const result = await service.discover('user-1', 'token', {
+        repoFullName: 'tone/legacy',
+      });
+
+      expect(result.baseBranch).toBe('master');
+    });
+
+    it('still honours an explicit baseBranch from the caller', async () => {
+      const result = await service.discover('user-1', 'token', {
+        repoFullName: 'tone/app',
+        baseBranch: 'develop',
+      });
+
+      expect(result.baseBranch).toBe('develop');
+      expect(githubService.getRepo).not.toHaveBeenCalled();
+    });
+
+    it('warns that a protected branch will reject the commit', async () => {
+      githubService.requiresPullRequestToPush = jest
+        .fn()
+        .mockResolvedValue(true);
+
+      const result = await service.discover('user-1', 'token', {
+        repoFullName: 'tone/app',
+      });
+
+      expect(result.warnings.map((w) => w.code)).toContain('branch_protected');
+    });
+
+    it('does NOT warn when protection cannot be read — an unknown is not a blocker', async () => {
+      githubService.requiresPullRequestToPush = jest
+        .fn()
+        .mockResolvedValue(null);
+
+      const result = await service.discover('user-1', 'token', {
+        repoFullName: 'tone/app',
+      });
+
+      expect(result.warnings.map((w) => w.code)).not.toContain(
+        'branch_protected',
+      );
+    });
+
+    it('warns that existing SonarCloud secrets will be left alone', async () => {
+      githubService.listActionsSecretNames = jest
+        .fn()
+        .mockResolvedValue(new Set(['SONAR_TOKEN']));
+
+      const result = await service.discover('user-1', 'token', {
+        repoFullName: 'tone/app',
+      });
+
+      expect(result.warnings.map((w) => w.code)).toContain(
+        'sonar_already_configured',
+      );
+    });
+
+    it('says a uat branch will be created when the repository has none', async () => {
+      const result = await service.discover('user-1', 'token', {
+        repoFullName: 'tone/app',
+      });
+
+      expect(result.warnings.map((w) => w.code)).toContain('uat_missing');
+    });
+
+    it('stays quiet about uat when the repository already has one', async () => {
+      githubService.branchExists = jest.fn().mockResolvedValue(true);
+
+      const result = await service.discover('user-1', 'token', {
+        repoFullName: 'tone/app',
+      });
+
+      expect(result.warnings.map((w) => w.code)).not.toContain('uat_missing');
+    });
+
+    it('tells the user to pick a stack when none could be detected', async () => {
+      githubService.getFileContent = jest.fn().mockResolvedValue(null);
+
+      const result = await service.discover('user-1', 'token', {
+        repoFullName: 'tone/app',
+      });
+
+      expect(result.detectedProjectTypeId).toBeNull();
+      expect(result.warnings.map((w) => w.code)).toContain(
+        'project_type_undetected',
+      );
+    });
+
+    it('reports a clean repository with no warnings at all', async () => {
+      githubService.branchExists = jest.fn().mockResolvedValue(true);
+
+      const result = await service.discover('user-1', 'token', {
+        repoFullName: 'tone/app',
+      });
+
+      expect(result.warnings).toEqual([]);
+    });
+  });
+
 });
