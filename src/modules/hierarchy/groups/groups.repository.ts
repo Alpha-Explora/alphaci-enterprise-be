@@ -635,29 +635,6 @@ export class GroupsRepository {
   }
 
   /**
-   * Shared SELECT for invitations, LEFT JOINed to the invitee + inviter
-   * profiles and the group so every read carries display enrichment (real
-   * name, GitHub login/avatar, group name). LEFT JOIN so a missing profile
-   * never drops the invitation row.
-   */
-  private static readonly INVITATION_SELECT = `
-    SELECT
-      inv.id, inv.workspace_id, inv.invited_user_id, inv.invited_by,
-      inv.role, inv.status, inv.created_at, inv.responded_at, inv.expires_at,
-      invitee.login AS invitee_login,
-      invitee.display_name AS invitee_name,
-      invitee.email AS invitee_email,
-      invitee.avatar_url AS invitee_avatar_url,
-      inviter.login AS invited_by_login,
-      inviter.display_name AS invited_by_name,
-      workspace.name AS group_name
-    FROM orgs.group_invitations AS inv
-    LEFT JOIN identity.app_users AS invitee ON invitee.id = inv.invited_user_id
-    LEFT JOIN identity.app_users AS inviter ON inviter.id = inv.invited_by
-    LEFT JOIN orgs.workspaces AS workspace ON workspace.id = inv.workspace_id
-  `;
-
-  /**
    * Grants membership immediately — there is no invitation and no pending
    * state. Upserting on (workspace_id, user_id) makes re-adding a previously
    * removed member a reinstatement rather than a unique violation.
@@ -759,7 +736,12 @@ export class GroupsRepository {
   /**
    * Resolves a batch of GitHub logins to AlphaCI accounts, flagging any that
    * are already an active member of the given Group. Used to cross-reference
-   * the GitHub org roster against local accounts for the invite picker.
+   * the GitHub org roster against local accounts for the member picker.
+   *
+   * Only INTERNAL accounts count as "has an account" — the same gate
+   * GroupMembersService.addMember applies. An org member who has signed in but
+   * is not internal is reported hasAccount:false and shown disabled, rather
+   * than being offered and rejected on submit.
    */
   async findAccountsByLogins(
     groupId: string,
@@ -785,7 +767,11 @@ export class GroupsRepository {
               AND member.member_status = 'active'
           ) AS is_active_member
         FROM identity.app_users AS app_user
-        WHERE lower(app_user.login) = ANY($2::text[]);
+        WHERE lower(app_user.login) = ANY($2::text[])
+          -- Must match findInternalUserById's gate exactly. Without this a
+          -- non-internal account renders as selectable in the picker and then
+          -- fails the add with a 404 the UI cannot explain.
+          AND app_user.is_internal = true;
       `,
       [groupId, logins.map((login) => login.toLowerCase())],
     );
