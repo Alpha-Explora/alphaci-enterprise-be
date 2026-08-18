@@ -12,8 +12,6 @@ describe('HierarchyAccessService', () => {
   const groupsRepository = {
     findActiveMembership: jest.fn(),
     findGroupById: jest.fn(),
-    // No parent: the manager check has nothing to inherit from.
-    findParentWorkspaceId: jest.fn().mockResolvedValue(null),
   } as unknown as jest.Mocked<GroupsRepository>;
   const systemsRepository = {
     findGroupIdForSystem: jest.fn(),
@@ -57,10 +55,7 @@ describe('HierarchyAccessService', () => {
       });
 
       await expect(
-        service.assertGroupRole('group-1', 'user-1', [
-          'admin',
-          'delegated_lead',
-        ]),
+        service.assertGroupRole('group-1', 'user-1', ['admin', 'delegated_lead']),
       ).resolves.toMatchObject({ role: 'admin' });
     });
 
@@ -73,10 +68,7 @@ describe('HierarchyAccessService', () => {
       });
 
       await expect(
-        service.assertGroupRole('group-1', 'user-1', [
-          'admin',
-          'delegated_lead',
-        ]),
+        service.assertGroupRole('group-1', 'user-1', ['admin', 'delegated_lead']),
       ).rejects.toBeInstanceOf(ForbiddenException);
     });
 

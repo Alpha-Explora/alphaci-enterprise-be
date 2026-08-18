@@ -29,10 +29,7 @@ describe('WorkspaceAccessService', () => {
     });
 
     await expect(
-      service.assertWorkspaceRole('workspace-1', 'user-1', [
-        'admin',
-        'delegated_lead',
-      ]),
+      service.assertWorkspaceRole('workspace-1', 'user-1', ['admin', 'delegated_lead']),
     ).resolves.toEqual({
       workspaceId: 'workspace-1',
       userId: 'user-1',
@@ -48,10 +45,7 @@ describe('WorkspaceAccessService', () => {
     });
 
     await expect(
-      service.assertWorkspaceRole('workspace-1', 'user-1', [
-        'admin',
-        'delegated_lead',
-      ]),
+      service.assertWorkspaceRole('workspace-1', 'user-1', ['admin', 'delegated_lead']),
     ).rejects.toBeInstanceOf(ForbiddenException);
   });
 

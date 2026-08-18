@@ -114,18 +114,14 @@ export class GroupsRepository {
     description?: string | null;
     businessUnit?: string | null;
     creatorUserId: string;
-    /** Set for a TEAM; null creates a top-level workspace. */
-    parentWorkspaceId?: string | null;
   }): Promise<GroupRecord> {
     return this.databaseService.withClient(async (client) => {
       await client.query('BEGIN');
       try {
         const result = await client.query<GroupRow>(
           `
-            INSERT INTO orgs.workspaces (
-              owner_user_id, name, kind, description, business_unit, status, parent_workspace_id
-            )
-            VALUES ($1, $2, CASE WHEN $5::uuid IS NULL THEN 'workspace' ELSE 'team' END, $3, $4, 'active', $5)
+            INSERT INTO orgs.workspaces (owner_user_id, name, kind, description, business_unit, status)
+            VALUES ($1, $2, 'team', $3, $4, 'active')
             RETURNING id, name, description, business_unit, status, archived_at, archived_by, created_at;
           `,
           [
@@ -133,7 +129,6 @@ export class GroupsRepository {
             input.name,
             input.description ?? null,
             input.businessUnit ?? null,
-            input.parentWorkspaceId ?? null,
           ],
         );
         const row = result.rows[0];
@@ -662,52 +657,6 @@ export class GroupsRepository {
     LEFT JOIN orgs.workspaces AS workspace ON workspace.id = inv.workspace_id
   `;
 
-  /** Teams belonging to a workspace, newest first. */
-  async listTeamsForWorkspace(
-    parentWorkspaceId: string,
-    userId: string,
-  ): Promise<GroupRecord[]> {
-    const result = await this.databaseService.query<GroupRow>(
-      `
-        SELECT
-          workspace.id, workspace.name, workspace.description,
-          workspace.business_unit, workspace.status, workspace.archived_at,
-          workspace.archived_by, workspace.created_at, member.role
-        FROM orgs.workspaces AS workspace
-        JOIN orgs.workspace_members AS member
-          ON member.workspace_id = workspace.id
-         AND member.user_id = $2
-         AND member.member_status = 'active'
-        WHERE workspace.parent_workspace_id = $1
-        ORDER BY workspace.created_at DESC;
-      `,
-      [parentWorkspaceId, userId],
-    );
-    return result.rows.map((row) =>
-      this.toGroup(row, { memberCount: 0, systemCount: 0 }),
-    );
-  }
-
-  /** The workspace a team belongs to, or null for a top-level workspace. */
-  async findParentWorkspaceId(groupId: string): Promise<string | null> {
-    const result = await this.databaseService.query<{
-      parent_workspace_id: string | null;
-    }>(
-      `SELECT parent_workspace_id FROM orgs.workspaces WHERE id = $1 LIMIT 1;`,
-      [groupId],
-    );
-    return result.rows[0]?.parent_workspace_id ?? null;
-  }
-
-  /** Guards the delete path so the FK's RESTRICT is never the first thing a user meets. */
-  async countTeams(workspaceId: string): Promise<number> {
-    const result = await this.databaseService.query<{ count: string }>(
-      `SELECT COUNT(*)::text AS count FROM orgs.workspaces WHERE parent_workspace_id = $1;`,
-      [workspaceId],
-    );
-    return Number(result.rows[0]?.count ?? '0');
-  }
-
   /**
    * Grants membership immediately — there is no invitation and no pending
    * state. Upserting on (workspace_id, user_id) makes re-adding a previously
@@ -903,4 +852,5 @@ export class GroupsRepository {
     );
     return (result.rowCount ?? 0) > 0;
   }
+
 }

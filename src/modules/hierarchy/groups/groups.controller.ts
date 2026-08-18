@@ -103,15 +103,6 @@ export class GroupsController {
     );
   }
 
-  /**
-   * Teams inside a workspace. Distinct from GET /groups, which lists every team
-   * the caller belongs to regardless of which workspace holds it.
-   */
-  @Get(':groupId/teams')
-  listTeams(@Req() req: Request, @Param('groupId') groupId: string) {
-    return this.groupsService.listTeams(groupId, this.requireUserId(req));
-  }
-
   @Get(':groupId/members')
   listMembers(@Req() req: Request, @Param('groupId') groupId: string) {
     return this.groupsService.listMembers(groupId, this.requireUserId(req));

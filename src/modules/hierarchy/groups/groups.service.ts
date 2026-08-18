@@ -33,32 +33,15 @@ export class GroupsService {
 
   async createGroup(
     userId: string,
-    input: {
-      name: string;
-      description?: string;
-      businessUnit?: string;
-      /** Set to create a TEAM inside that workspace; omit for a workspace. */
-      parentWorkspaceId?: string;
-    },
+    input: { name: string; description?: string; businessUnit?: string },
   ): Promise<GroupRecord> {
-    if (input.parentWorkspaceId) {
-      // A team needs manager rights on the workspace it goes into, not just
-      // the global tier — see assertCanCreateTeamInWorkspace.
-      await this.accessService.assertCanCreateTeamInWorkspace(
-        input.parentWorkspaceId,
-        userId,
-      );
-    } else {
-      // Only global Leads and Admins may create top-level workspaces.
-      const appRole = await this.accessService.getAppRole(userId);
-      if (
-        appRole === 'member' &&
-        !(await this.accessService.isPlatformAdmin(userId))
-      ) {
-        throw new ForbiddenException(
-          'Only Leads and Admins can create workspaces',
-        );
-      }
+    // Only global Leads and Admins may create groups (Members cannot).
+    const appRole = await this.accessService.getAppRole(userId);
+    if (
+      appRole === 'member' &&
+      !(await this.accessService.isPlatformAdmin(userId))
+    ) {
+      throw new ForbiddenException('Only Leads and Admins can create groups');
     }
 
     const group = await this.groupsRepository.createGroup({
@@ -66,7 +49,6 @@ export class GroupsService {
       description: input.description ?? null,
       businessUnit: input.businessUnit ?? null,
       creatorUserId: userId,
-      parentWorkspaceId: input.parentWorkspaceId ?? null,
     });
 
     await this.auditEventsService.recordProjectEvent({
@@ -166,18 +148,6 @@ export class GroupsService {
    * "individual" (workspace_id → NULL), never destroyed (see
    * GroupsRepository.deleteGroup).
    */
-  /** Teams inside a workspace. Requires membership of the workspace itself. */
-  async listTeams(
-    parentWorkspaceId: string,
-    userId: string,
-  ): Promise<GroupRecord[]> {
-    await this.accessService.assertGroupMembership(parentWorkspaceId, userId);
-    return this.groupsRepository.listTeamsForWorkspace(
-      parentWorkspaceId,
-      userId,
-    );
-  }
-
   async deleteGroup(
     groupId: string,
     userId: string,
@@ -190,17 +160,6 @@ export class GroupsService {
     const group = await this.groupsRepository.findGroupById(groupId);
     if (!group) {
       throw new NotFoundException('Group not found');
-    }
-
-    // Blocked, not cascaded. The FK is ON DELETE RESTRICT so this is impossible
-    // at the database too — but a raw FK violation is not a sentence anyone can
-    // act on, and cascading would destroy several teams' membership from one
-    // click.
-    const teamCount = await this.groupsRepository.countTeams(groupId);
-    if (teamCount > 0) {
-      throw new BadRequestException(
-        `This workspace still contains ${String(teamCount)} team${teamCount === 1 ? '' : 's'}. Delete them first.`,
-      );
     }
 
     // Record the intent BEFORE the row (and its cascaded audit rows) disappear.
