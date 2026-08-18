@@ -1372,6 +1372,118 @@ export class GithubService extends EventEmitter {
     );
   }
 
+  /**
+   * Names of the Actions secrets already configured on a repository.
+   *
+   * Values are never returned by GitHub — only names — which is exactly what
+   * onboarding needs: enough to know NOT to overwrite a secret somebody else
+   * set, without ever reading it. Returns an empty set rather than throwing
+   * when the token cannot list secrets, so a missing permission degrades to
+   * "assume nothing exists" and the caller's own strict write still reports
+   * the real error.
+   */
+  /**
+   * Removes one Actions secret.
+   *
+   * Used to undo a failed onboarding. A 404 counts as success — the goal is
+   * "this secret is not there", and it already isn't.
+   */
+  async deleteActionsSecret(
+    accessToken: string,
+    owner: string,
+    repo: string,
+    secretName: string,
+  ): Promise<void> {
+    const response = await this.fetchWithRetry(
+      `https://api.github.com/repos/${owner}/${repo}/actions/secrets/${encodeURIComponent(secretName)}`,
+      { method: 'DELETE', headers: this.workspaceHeaders(accessToken) },
+    );
+
+    if (!response.ok && response.status !== 404) {
+      const body = await response.text();
+      throw new BadGatewayException(
+        `GitHub secret delete failed (${String(response.status)}): ${body.slice(0, 200)}`,
+      );
+    }
+  }
+
+  async listActionsSecretNames(
+    accessToken: string,
+    owner: string,
+    repo: string,
+  ): Promise<Set<string>> {
+    try {
+      const response = await this.fetchWithRetry(
+        `https://api.github.com/repos/${owner}/${repo}/actions/secrets?per_page=100`,
+        { headers: this.workspaceHeaders(accessToken) },
+      );
+
+      if (!response.ok) return new Set();
+
+      const payload = (await response.json()) as {
+        secrets?: Array<{ name?: string }>;
+      };
+
+      return new Set(
+        (payload.secrets ?? [])
+          .map((secret) => secret.name)
+          .filter((name): name is string => Boolean(name)),
+      );
+    } catch {
+      return new Set();
+    }
+  }
+
+  /** True when `branch` exists on the repository. */
+  async branchExists(
+    accessToken: string,
+    owner: string,
+    repo: string,
+    branch: string,
+  ): Promise<boolean> {
+    const response = await this.fetchWithRetry(
+      `https://api.github.com/repos/${owner}/${repo}/branches/${encodeURIComponent(branch)}`,
+      { headers: this.workspaceHeaders(accessToken) },
+    );
+    return response.ok;
+  }
+
+  /**
+   * Whether direct pushes to a branch are blocked by protection rules.
+   *
+   * Onboarding commits the workflow files straight to the default branch, so a
+   * rule requiring pull requests turns the whole attempt into a failure AFTER
+   * secrets have been written. Knowing in advance lets the UI say so first.
+   *
+   * A token that cannot read protection returns `null` — "unknown", never
+   * "unprotected". Reporting a guess as a fact is how a preflight becomes worse
+   * than no preflight.
+   */
+  async requiresPullRequestToPush(
+    accessToken: string,
+    owner: string,
+    repo: string,
+    branch: string,
+  ): Promise<boolean | null> {
+    try {
+      const response = await this.fetchWithRetry(
+        `https://api.github.com/repos/${owner}/${repo}/branches/${encodeURIComponent(branch)}/protection`,
+        { headers: this.workspaceHeaders(accessToken) },
+      );
+
+      // 404 is the documented answer for "this branch has no protection".
+      if (response.status === 404) return false;
+      if (!response.ok) return null;
+
+      const payload = (await response.json()) as {
+        required_pull_request_reviews?: unknown;
+      };
+      return payload.required_pull_request_reviews != null;
+    } catch {
+      return null;
+    }
+  }
+
   async createBranch(
     accessToken: string,
     owner: string,

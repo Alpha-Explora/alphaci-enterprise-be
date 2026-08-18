@@ -13,13 +13,33 @@ import { GithubService } from '../github/github.service';
 import type { DiscoverExistingRepoDto } from './dto/discover-existing-repo.dto';
 import type { SetupExistingRepoPrDto } from './dto/setup-existing-repo-pr.dto';
 
+export type ExistingRepoWarningCode =
+  | 'branch_protected'
+  | 'sonar_already_configured'
+  | 'uat_missing'
+  | 'project_type_undetected';
+
+export interface ExistingRepoWarning {
+  code: ExistingRepoWarningCode;
+  message: string;
+}
+
 export interface ExistingRepoDiscoveryResponse {
   repoFullName: string;
+  /** The repository's OWN default branch — not an assumption. */
   baseBranch: string;
   detectedProjectTypeId: string | null;
   recommendedWorkflowRecipeId: string;
   serviceName: string;
   servicePath: string;
+  /**
+   * What setup will do, and what it cannot do, said BEFORE anything is
+   * written. Onboarding commits to the repository and installs secrets; a
+   * person deserves to know that a protected branch will reject the push, or
+   * that their SonarCloud config will be left alone, while they can still
+   * change their mind.
+   */
+  warnings: ExistingRepoWarning[];
 }
 
 export interface ExistingRepoSetupPullRequestResponse {
@@ -48,7 +68,12 @@ export class ExistingReposService {
       oauthAccessToken,
       dto.repoFullName,
     );
-    const baseBranch = dto.baseBranch ?? 'main';
+    /*
+     * Ask the repository which branch it lives on. A caller may still override
+     * it, but 'main' is no longer assumed — the whole reason onboarding used to
+     * fail on `master` repositories.
+     */
+    const baseBranch = dto.baseBranch ?? (await this.defaultBranch(token, owner, repo));
     const packageJson = await this.githubService.getFileContent(
       token,
       owner,
@@ -57,6 +82,13 @@ export class ExistingReposService {
       baseBranch,
     );
     const detectedProjectTypeId = this.detectProjectType(packageJson);
+    const warnings = await this.preflight(
+      token,
+      owner,
+      repo,
+      baseBranch,
+      detectedProjectTypeId,
+    );
 
     return {
       repoFullName: dto.repoFullName,
@@ -65,7 +97,81 @@ export class ExistingReposService {
       recommendedWorkflowRecipeId: 'standard',
       serviceName: repo,
       servicePath: '.',
+      warnings,
     };
+  }
+
+  private async defaultBranch(
+    token: string,
+    owner: string,
+    repo: string,
+  ): Promise<string> {
+    try {
+      const repository = await this.githubService.getRepo(token, owner, repo);
+      return repository.defaultBranch?.trim() || 'main';
+    } catch {
+      return 'main';
+    }
+  }
+
+  /**
+   * Everything setup is about to do that the person should know first.
+   *
+   * Read-only. Each check degrades to silence rather than to a false alarm: a
+   * protection state we cannot read is reported as nothing at all, because a
+   * preflight that invents blockers is worse than one that misses them.
+   */
+  private async preflight(
+    token: string,
+    owner: string,
+    repo: string,
+    baseBranch: string,
+    detectedProjectTypeId: string | null,
+  ): Promise<ExistingRepoWarning[]> {
+    const warnings: ExistingRepoWarning[] = [];
+
+    const protectedBranch = await this.githubService.requiresPullRequestToPush(
+      token,
+      owner,
+      repo,
+      baseBranch,
+    );
+    if (protectedBranch === true) {
+      warnings.push({
+        code: 'branch_protected',
+        message: `'${baseBranch}' requires pull request reviews, so ALPHACI cannot commit the workflow files directly. Relax the rule for this push, or add the workflows through a pull request.`,
+      });
+    }
+
+    const secrets = await this.githubService.listActionsSecretNames(
+      token,
+      owner,
+      repo,
+    );
+    if (secrets.has('SONAR_TOKEN') || secrets.has('SONAR_PROJECT_KEY')) {
+      warnings.push({
+        code: 'sonar_already_configured',
+        message:
+          'This repository already has SonarCloud secrets. They will be left exactly as they are, and the ALPHACI quality stage will use them.',
+      });
+    }
+
+    if (!(await this.githubService.branchExists(token, owner, repo, 'uat'))) {
+      warnings.push({
+        code: 'uat_missing',
+        message: `There is no 'uat' branch yet. ALPHACI will create one from '${baseBranch}' so the staging and promotion stages have somewhere to run.`,
+      });
+    }
+
+    if (!detectedProjectTypeId) {
+      warnings.push({
+        code: 'project_type_undetected',
+        message:
+          'No package.json was found on this branch, so the stack could not be detected. Choose the language and framework yourself before setting up.',
+      });
+    }
+
+    return warnings;
   }
 
   async setupPullRequest(
