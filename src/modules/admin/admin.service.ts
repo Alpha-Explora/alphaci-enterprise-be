@@ -198,20 +198,22 @@ export class AdminService {
     }
 
     // Admin-tier authorization (product decision 2026-07-14):
-    //  - The permanent super-admin can never be demoted below Admin.
     //  - Promoting someone TO Admin, or demoting someone FROM Admin, is
     //    reserved for the super-admin. A regular Admin may still shuffle the
     //    lower Lead/Member tiers but cannot mint or unmake other Admins.
-    const [actorPlatformRole, targetPlatformRole, targetCurrentRole] =
-      await Promise.all([
-        this.platformAdminsRepository.findRole(actorId),
-        this.platformAdminsRepository.findRole(targetUserId),
-        this.platformAdminsRepository.findAppRole(targetUserId),
-      ]);
-
-    if (targetPlatformRole === 'super_admin' && role !== 'admin') {
-      throw new BadRequestException('The permanent admin cannot be demoted.');
-    }
+    //
+    // A super-admin's app_role is NO LONGER frozen at 'admin' (2026-08-18).
+    // That rule existed to stop the last Console holder locking everyone out,
+    // but PlatformAdminGuard checks the platform role FIRST and returns before
+    // it ever reads app_role — so the identity.platform_admins row, not
+    // app_role, is what guarantees access. Freezing app_role therefore bought
+    // no safety and only prevented a super-admin from also being an ordinary
+    // Team lead in the hierarchy. The admin-tier gate below still applies, so
+    // moving a super-admin off 'admin' remains a super-admin-only action.
+    const [actorPlatformRole, targetCurrentRole] = await Promise.all([
+      this.platformAdminsRepository.findRole(actorId),
+      this.platformAdminsRepository.findAppRole(targetUserId),
+    ]);
 
     const involvesAdminTier = role === 'admin' || targetCurrentRole === 'admin';
     if (involvesAdminTier && actorPlatformRole !== 'super_admin') {
@@ -250,18 +252,10 @@ export class AdminService {
       throw new NotFoundException('User not found');
     }
 
-    const [actorPlatformRole, targetPlatformRole, targetCurrentRole] =
-      await Promise.all([
-        this.platformAdminsRepository.findRole(actorId),
-        this.platformAdminsRepository.findRole(targetUserId),
-        this.platformAdminsRepository.findAppRole(targetUserId),
-      ]);
-
-    if (targetPlatformRole === 'super_admin') {
-      throw new BadRequestException(
-        'The permanent admin cannot be unpinned from GitHub team sync.',
-      );
-    }
+    const [actorPlatformRole, targetCurrentRole] = await Promise.all([
+      this.platformAdminsRepository.findRole(actorId),
+      this.platformAdminsRepository.findAppRole(targetUserId),
+    ]);
 
     if (targetCurrentRole === 'admin' && actorPlatformRole !== 'super_admin') {
       throw new ForbiddenException(
