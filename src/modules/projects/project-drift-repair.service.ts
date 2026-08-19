@@ -10,7 +10,7 @@ import type { AppConfig } from '../../config/app.config';
 import { AuditEventsService } from '../audit/audit-events.service';
 import { CiService } from '../ci/ci.service';
 import { DeploymentTargetsRepository } from '../env-provisioning/deployment-targets.repository';
-import { NotificationEventsService } from '../notifications/notification-events.service';
+import { NotificationEventsService } from '../notifications/index.js';
 import type {
   ProjectDriftFinding,
   ProjectDriftRepairAction,

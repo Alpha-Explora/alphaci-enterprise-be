@@ -5,7 +5,7 @@ import { SubscriptionGuard } from '../../common/guards/subscription.guard';
 import { AuditModule } from '../audit/audit.module';
 import { DatabaseModule } from '../database/database.module';
 import { GithubModule } from '../github/github.module';
-import { NotificationsModule } from '../notifications/notifications.module';
+import { NotificationsModule } from '../notifications/index.js';
 import { PersistenceModule } from '../persistence/persistence.module';
 import { ProjectsRepository } from '../projects/projects.repository';
 import { SubscriptionModule } from '../subscription/subscription.module';

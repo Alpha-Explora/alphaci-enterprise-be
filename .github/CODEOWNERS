@@ -1,0 +1,36 @@
+# Feature ownership.
+#
+# Routes each PR to the person who owns that feature, so review is not a queue
+# behind one person. This is the third layer of boundary enforcement — lint
+# catches deep imports, CI catches new violations, CODEOWNERS makes sure the
+# right human sees the change.
+#
+# REPLACE the placeholders below with real GitHub handles or teams before
+# enabling required reviews. Unassigned features fall through to the default.
+
+# ── Default ──────────────────────────────────────────────────────────────────
+*                                   @Alpha-Explora/maintainers
+
+# ── Shared foundations — change carefully, everything depends on these ───────
+/src/kernel/                        @Alpha-Explora/maintainers
+/.dependency-cruiser.cjs            @Alpha-Explora/maintainers
+/.github/workflows/                 @Alpha-Explora/maintainers
+/supabase/migrations/               @Alpha-Explora/maintainers
+
+# ── Features ─────────────────────────────────────────────────────────────────
+# /src/modules/auth/                @handle
+# /src/modules/projects/            @handle
+# /src/modules/workflows/           @handle
+# /src/modules/ci/                  @handle
+# /src/modules/catalog/             @handle
+# /src/modules/github/              @handle
+# /src/modules/hierarchy/           @handle
+# /src/modules/workspaces/          @handle
+# /src/modules/env-provisioning/    @handle
+# /src/modules/notifications/       @handle
+# /src/modules/admin/               @handle
+# /src/modules/usage/               @handle
+# /src/modules/subscription/        @handle
+# /src/modules/feedback/            @handle
+# /src/modules/capabilities/        @handle
+# /src/modules/existing-repos/      @handle

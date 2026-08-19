@@ -8,7 +8,7 @@ import { ConfigService } from '@nestjs/config';
 
 import type { AppConfig } from '../../config/app.config';
 import { AuditEventsService } from '../audit/audit-events.service';
-import { NotificationEventsService } from '../notifications/notification-events.service';
+import { NotificationEventsService } from '../notifications/index.js';
 import { DeploymentTargetsRepository } from './deployment-targets.repository';
 import type { ProvisionEnvVarsDto } from './dto/provision-env-vars.dto';
 import { EnvTokenEncryptionService } from './encryption.service';

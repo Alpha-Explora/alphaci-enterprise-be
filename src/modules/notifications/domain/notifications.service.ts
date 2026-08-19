@@ -4,7 +4,7 @@ import {
   NotificationsRepository,
   type NotificationPreferences,
   type NotificationsResponse,
-} from './notifications.repository';
+} from '../infra/notifications.repository';
 
 @Injectable()
 export class NotificationsService {

@@ -11,7 +11,7 @@ import { GithubModule } from '../github/github.module';
 import { CiModule } from '../ci/ci.module';
 import { EnvProvisioningModule } from '../env-provisioning/env-provisioning.module';
 import { PersistenceModule } from '../persistence/persistence.module';
-import { NotificationsModule } from '../notifications/notifications.module';
+import { NotificationsModule } from '../notifications/index.js';
 import { SubscriptionModule } from '../subscription/subscription.module';
 import { UsageModule } from '../usage/usage.module';
 import { WorkspacesModule } from '../workspaces/workspaces.module';

@@ -78,7 +78,7 @@ import type { UsageLimitCode } from '../usage/usage.types';
 import { WorkspacesService } from '../workspaces/workspaces.service';
 import { WorkspaceAccessService } from '../workspaces/workspace-access.service';
 import type { WorkspaceRole } from '../workspaces/workspaces.repository';
-import { NotificationEventsService } from '../notifications/notification-events.service';
+import { NotificationEventsService } from '../notifications/index.js';
 import {
   buildProjectScaffold,
   defaultIncludeDocker,

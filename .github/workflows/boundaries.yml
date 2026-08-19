@@ -1,0 +1,52 @@
+# Architecture boundary gate.
+#
+# Deliberately standalone and secret-free: it does not call the shared
+# orchestrator, so it runs and gives a verdict even before deployment
+# credentials exist.
+#
+# The baseline in .dependency-cruiser-known-violations.json records the 197
+# violations present when the structure was introduced. This job fails only on
+# violations *beyond* that baseline, so the count can go down and never up.
+# When you fix some, regenerate with:
+#   npx depcruise src tests --config .dependency-cruiser.cjs \
+#     --output-type baseline > .dependency-cruiser-known-violations.json
+name: Boundaries
+
+on:
+  pull_request:
+    branches: [test, uat, main]
+  push:
+    branches: [test, uat, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: boundaries-${{ github.event_name }}-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  boundaries:
+    name: Module boundaries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: No new boundary violations
+        run: npm run boundaries
+
+      - name: Report remaining baseline debt
+        if: always()
+        run: |
+          COUNT=$(node -p "require('./.dependency-cruiser-known-violations.json').length")
+          echo "### Boundary debt: $COUNT known violations remaining" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Each one is a module reaching into another module's internals." >> "$GITHUB_STEP_SUMMARY"
+          echo "They are migrated away feature by feature — see docs/restructure.md." >> "$GITHUB_STEP_SUMMARY"

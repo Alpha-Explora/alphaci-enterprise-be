@@ -1,0 +1,2714 @@
+[
+  {
+    "type": "cycle",
+    "from": "src/modules/env-provisioning/project-deployment-provisioning.service.ts",
+    "to": "src/modules/projects/projects.service.ts",
+    "unresolvedTo": "../projects/projects.service",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-circular"
+    },
+    "cycle": [
+      {
+        "name": "src/modules/projects/projects.service.ts",
+        "dependencyTypes": [
+          "local",
+          "type-only",
+          "import"
+        ]
+      },
+      {
+        "name": "src/modules/env-provisioning/project-deployment-provisioning.service.ts",
+        "dependencyTypes": [
+          "local",
+          "import"
+        ]
+      }
+    ]
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/admin/admin.controller.ts",
+    "to": "src/modules/feedback/feedback.repository.ts",
+    "unresolvedTo": "../feedback/feedback.repository",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/admin/admin.module.ts",
+    "to": "src/modules/audit/audit.module.ts",
+    "unresolvedTo": "../audit/audit.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/admin/admin.module.ts",
+    "to": "src/modules/database/database.module.ts",
+    "unresolvedTo": "../database/database.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/admin/admin.module.ts",
+    "to": "src/modules/feedback/feedback.module.ts",
+    "unresolvedTo": "../feedback/feedback.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/admin/admin.module.ts",
+    "to": "src/modules/persistence/persistence.module.ts",
+    "unresolvedTo": "../persistence/persistence.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/admin/admin.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/admin/admin.service.ts",
+    "to": "src/modules/audit/audit-events.repository.ts",
+    "unresolvedTo": "../audit/audit-events.repository",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/admin/admin.service.ts",
+    "to": "src/modules/feedback/feedback.repository.ts",
+    "unresolvedTo": "../feedback/feedback.repository",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/admin/admin.service.ts",
+    "to": "src/modules/feedback/feedback.service.ts",
+    "unresolvedTo": "../feedback/feedback.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/admin/platform-admins.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/audit/audit-events.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/audit/audit.module.ts",
+    "to": "src/modules/database/database.module.ts",
+    "unresolvedTo": "../database/database.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/auth/auth.controller.ts",
+    "to": "src/modules/admin/platform-admins.repository.ts",
+    "unresolvedTo": "../admin/platform-admins.repository",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/auth/auth.controller.ts",
+    "to": "src/modules/subscription/subscription.service.ts",
+    "unresolvedTo": "../subscription/subscription.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/auth/auth.module.ts",
+    "to": "src/modules/admin/admin.module.ts",
+    "unresolvedTo": "../admin/admin.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/auth/auth.module.ts",
+    "to": "src/modules/github/github.module.ts",
+    "unresolvedTo": "../github/github.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/auth/auth.module.ts",
+    "to": "src/modules/persistence/persistence.module.ts",
+    "unresolvedTo": "../persistence/persistence.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/auth/auth.module.ts",
+    "to": "src/modules/projects/projects.module.ts",
+    "unresolvedTo": "../projects/projects.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/auth/auth.module.ts",
+    "to": "src/modules/subscription/subscription.module.ts",
+    "unresolvedTo": "../subscription/subscription.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/auth/auth.service.ts",
+    "to": "src/modules/github/github-team-role.service.ts",
+    "unresolvedTo": "../github/github-team-role.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/auth/auth.service.ts",
+    "to": "src/modules/persistence/oauth-state.repository.ts",
+    "unresolvedTo": "../persistence/oauth-state.repository",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/auth/auth.service.ts",
+    "to": "src/modules/persistence/outbox.repository.ts",
+    "unresolvedTo": "../persistence/outbox.repository",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/auth/auth.service.ts",
+    "to": "src/modules/persistence/subscriptions.repository.ts",
+    "unresolvedTo": "../persistence/subscriptions.repository",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/auth/auth.service.ts",
+    "to": "src/modules/persistence/users.repository.ts",
+    "unresolvedTo": "../persistence/users.repository",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/catalog/catalog.controller.ts",
+    "to": "src/modules/github/github.service.ts",
+    "unresolvedTo": "../github/github.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/catalog/catalog.module.ts",
+    "to": "src/modules/github/github.module.ts",
+    "unresolvedTo": "../github/github.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/catalog/catalog.module.ts",
+    "to": "src/modules/persistence/persistence.module.ts",
+    "unresolvedTo": "../persistence/persistence.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/catalog/catalog.module.ts",
+    "to": "src/modules/subscription/subscription.module.ts",
+    "unresolvedTo": "../subscription/subscription.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/ci/ci-reports.service.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/ci/ci-run-reports.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/ci/ci-tokens.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/ci/ci.module.ts",
+    "to": "src/modules/database/database.module.ts",
+    "unresolvedTo": "../database/database.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/ci/ci.module.ts",
+    "to": "src/modules/persistence/persistence.module.ts",
+    "unresolvedTo": "../persistence/persistence.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/env-provisioning/deployment-targets.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/env-provisioning/deployment-targets.service.ts",
+    "to": "src/modules/audit/audit-events.service.ts",
+    "unresolvedTo": "../audit/audit-events.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/env-provisioning/deployment-targets.service.ts",
+    "to": "src/modules/projects/projects.repository.ts",
+    "unresolvedTo": "../projects/projects.repository",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/env-provisioning/deployment-targets.service.ts",
+    "to": "src/modules/usage/usage-quota.service.ts",
+    "unresolvedTo": "../usage/usage-quota.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/env-provisioning/deployment-targets.service.ts",
+    "to": "src/modules/usage/usage.types.ts",
+    "unresolvedTo": "../usage/usage.types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/env-provisioning/deployment-targets.service.ts",
+    "to": "src/modules/workspaces/workspace-access.service.ts",
+    "unresolvedTo": "../workspaces/workspace-access.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/env-provisioning/deployment-targets.service.ts",
+    "to": "src/modules/workspaces/workspaces.repository.ts",
+    "unresolvedTo": "../workspaces/workspaces.repository",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/env-provisioning/env-provisioning.module.ts",
+    "to": "src/modules/audit/audit.module.ts",
+    "unresolvedTo": "../audit/audit.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/env-provisioning/env-provisioning.module.ts",
+    "to": "src/modules/database/database.module.ts",
+    "unresolvedTo": "../database/database.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/env-provisioning/env-provisioning.module.ts",
+    "to": "src/modules/github/github.module.ts",
+    "unresolvedTo": "../github/github.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/env-provisioning/env-provisioning.module.ts",
+    "to": "src/modules/persistence/persistence.module.ts",
+    "unresolvedTo": "../persistence/persistence.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/env-provisioning/env-provisioning.module.ts",
+    "to": "src/modules/projects/projects.repository.ts",
+    "unresolvedTo": "../projects/projects.repository",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/env-provisioning/env-provisioning.module.ts",
+    "to": "src/modules/subscription/subscription.module.ts",
+    "unresolvedTo": "../subscription/subscription.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/env-provisioning/env-provisioning.module.ts",
+    "to": "src/modules/usage/usage.module.ts",
+    "unresolvedTo": "../usage/usage.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/env-provisioning/env-provisioning.module.ts",
+    "to": "src/modules/workspaces/workspaces.module.ts",
+    "unresolvedTo": "../workspaces/workspaces.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/env-provisioning/env-vars.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/env-provisioning/env-vars.service.ts",
+    "to": "src/modules/audit/audit-events.service.ts",
+    "unresolvedTo": "../audit/audit-events.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/env-provisioning/env-vars.service.ts",
+    "to": "src/modules/usage/usage-quota.service.ts",
+    "unresolvedTo": "../usage/usage-quota.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/env-provisioning/env-vars.service.ts",
+    "to": "src/modules/usage/usage.types.ts",
+    "unresolvedTo": "../usage/usage.types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/env-provisioning/env-vars.service.ts",
+    "to": "src/modules/workspaces/workspace-access.service.ts",
+    "unresolvedTo": "../workspaces/workspace-access.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/env-provisioning/project-deployment-provisioning.service.ts",
+    "to": "src/modules/projects/dto/create-project.dto.ts",
+    "unresolvedTo": "../projects/dto/create-project.dto",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/env-provisioning/project-deployment-provisioning.service.ts",
+    "to": "src/modules/projects/projects.service.ts",
+    "unresolvedTo": "../projects/projects.service",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/env-provisioning/provider-connections.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/env-provisioning/provider-connections.service.ts",
+    "to": "src/modules/workspaces/workspaces.service.ts",
+    "unresolvedTo": "../workspaces/workspaces.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/env-provisioning/render-ci-secrets.service.ts",
+    "to": "src/modules/github/github.service.ts",
+    "unresolvedTo": "../github/github.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/env-provisioning/vercel-ci-secrets.service.ts",
+    "to": "src/modules/github/github.service.ts",
+    "unresolvedTo": "../github/github.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/existing-repos/existing-repos.module.ts",
+    "to": "src/modules/catalog/catalog.module.ts",
+    "unresolvedTo": "../catalog/catalog.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/existing-repos/existing-repos.module.ts",
+    "to": "src/modules/github/github.module.ts",
+    "unresolvedTo": "../github/github.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/existing-repos/existing-repos.module.ts",
+    "to": "src/modules/persistence/persistence.module.ts",
+    "unresolvedTo": "../persistence/persistence.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/existing-repos/existing-repos.module.ts",
+    "to": "src/modules/subscription/subscription.module.ts",
+    "unresolvedTo": "../subscription/subscription.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/existing-repos/existing-repos.service.ts",
+    "to": "src/modules/catalog/catalog.service.ts",
+    "unresolvedTo": "../catalog/catalog.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/existing-repos/existing-repos.service.ts",
+    "to": "src/modules/github/github.service.ts",
+    "unresolvedTo": "../github/github.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/feedback/feedback.module.ts",
+    "to": "src/modules/database/database.module.ts",
+    "unresolvedTo": "../database/database.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/feedback/feedback.module.ts",
+    "to": "src/modules/persistence/persistence.module.ts",
+    "unresolvedTo": "../persistence/persistence.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/feedback/feedback.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/github/github-installations.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/github/github-team-role-reconcile.worker.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/github/github-team-role.service.ts",
+    "to": "src/modules/admin/platform-admins.repository.ts",
+    "unresolvedTo": "../admin/platform-admins.repository",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/github/github-team-role.service.ts",
+    "to": "src/modules/audit/audit-events.service.ts",
+    "unresolvedTo": "../audit/audit-events.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/github/github.module.ts",
+    "to": "src/modules/admin/admin.module.ts",
+    "unresolvedTo": "../admin/admin.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/github/github.module.ts",
+    "to": "src/modules/audit/audit.module.ts",
+    "unresolvedTo": "../audit/audit.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/github/github.module.ts",
+    "to": "src/modules/database/database.module.ts",
+    "unresolvedTo": "../database/database.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/github/github.module.ts",
+    "to": "src/modules/persistence/persistence.module.ts",
+    "unresolvedTo": "../persistence/persistence.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/github/github.service.ts",
+    "to": "src/modules/workflows/staged-workflow.builder.ts",
+    "unresolvedTo": "../workflows/staged-workflow.builder",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/assignments/assignments.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/assignments/assignments.service.ts",
+    "to": "src/modules/audit/audit-events.service.ts",
+    "unresolvedTo": "../../audit/audit-events.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/config-broker/providers/github-secrets.provider.ts",
+    "to": "src/modules/github/github.service.ts",
+    "unresolvedTo": "../../../github/github.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/config-broker/repo-config-broker.service.ts",
+    "to": "src/modules/audit/audit-events.service.ts",
+    "unresolvedTo": "../../audit/audit-events.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/config-broker/repo-configuration-changes.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/delivery-projects/delivery-projects.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/delivery-projects/delivery-projects.service.ts",
+    "to": "src/modules/audit/audit-events.service.ts",
+    "unresolvedTo": "../../audit/audit-events.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/github-sync/github-access-sync.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/github-sync/github-sync-outbox.worker.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/github-sync/github-sync.service.ts",
+    "to": "src/modules/audit/audit-events.service.ts",
+    "unresolvedTo": "../../audit/audit-events.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/github-sync/github-sync.service.ts",
+    "to": "src/modules/persistence/outbox.repository.ts",
+    "unresolvedTo": "../../persistence/outbox.repository",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/github-sync/github-sync.service.ts",
+    "to": "src/modules/persistence/users.repository.ts",
+    "unresolvedTo": "../../persistence/users.repository",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/github-sync/providers/github-team-access.live.ts",
+    "to": "src/modules/github/github.service.ts",
+    "unresolvedTo": "../../../github/github.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/group-activity.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/groups/group-members.service.ts",
+    "to": "src/modules/audit/audit-events.service.ts",
+    "unresolvedTo": "../../audit/audit-events.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/groups/groups.controller.ts",
+    "to": "src/modules/admin/guards/platform-admin.guard.ts",
+    "unresolvedTo": "../../admin/guards/platform-admin.guard",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/groups/groups.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/groups/groups.service.ts",
+    "to": "src/modules/audit/audit-events.service.ts",
+    "unresolvedTo": "../../audit/audit-events.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/groups/groups.service.ts",
+    "to": "src/modules/github/github.service.ts",
+    "unresolvedTo": "../../github/github.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/hierarchy-access.service.ts",
+    "to": "src/modules/admin/platform-admins.repository.ts",
+    "unresolvedTo": "../admin/platform-admins.repository",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/hierarchy.module.ts",
+    "to": "src/modules/admin/admin.module.ts",
+    "unresolvedTo": "../admin/admin.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/hierarchy.module.ts",
+    "to": "src/modules/audit/audit.module.ts",
+    "unresolvedTo": "../audit/audit.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/hierarchy.module.ts",
+    "to": "src/modules/database/database.module.ts",
+    "unresolvedTo": "../database/database.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/hierarchy.module.ts",
+    "to": "src/modules/github/github.module.ts",
+    "unresolvedTo": "../github/github.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/hierarchy.module.ts",
+    "to": "src/modules/persistence/persistence.module.ts",
+    "unresolvedTo": "../persistence/persistence.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/hierarchy.module.ts",
+    "to": "src/modules/projects/projects.repository.ts",
+    "unresolvedTo": "../projects/projects.repository",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/hierarchy.types.ts",
+    "to": "src/modules/workspaces/workspaces.repository.ts",
+    "unresolvedTo": "../workspaces/workspaces.repository",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/project-link/hierarchy-project-link.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/repositories/repositories.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/repositories/repositories.service.ts",
+    "to": "src/modules/audit/audit-events.service.ts",
+    "unresolvedTo": "../../audit/audit-events.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/repositories/repositories.service.ts",
+    "to": "src/modules/github/github.service.ts",
+    "unresolvedTo": "../../github/github.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/repositories/repositories.service.ts",
+    "to": "src/modules/projects/projects.repository.ts",
+    "unresolvedTo": "../../projects/projects.repository",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/systems/systems.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/hierarchy/systems/systems.service.ts",
+    "to": "src/modules/audit/audit-events.service.ts",
+    "unresolvedTo": "../../audit/audit-events.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/notifications/infra/notifications.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/notifications/notifications.module.ts",
+    "to": "src/modules/database/database.module.ts",
+    "unresolvedTo": "../database/database.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/notifications/notifications.module.ts",
+    "to": "src/modules/persistence/persistence.module.ts",
+    "unresolvedTo": "../persistence/persistence.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/persistence/oauth-state.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/persistence/outbox.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/persistence/persistence.module.ts",
+    "to": "src/modules/ci/ci-tokens.repository.ts",
+    "unresolvedTo": "../ci/ci-tokens.repository",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/persistence/persistence.module.ts",
+    "to": "src/modules/database/database.module.ts",
+    "unresolvedTo": "../database/database.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/persistence/subscriptions.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/persistence/users.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/persistence/workflow-history.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/local-deployment-history.provider.ts",
+    "to": "src/modules/env-provisioning/env-provisioning.types.ts",
+    "unresolvedTo": "../env-provisioning/env-provisioning.types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/project-ci-runs.service.ts",
+    "to": "src/modules/workflows/staged-workflow.builder.ts",
+    "unresolvedTo": "../workflows/staged-workflow.builder",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/project-ci-runs.types.ts",
+    "to": "src/modules/workflows/staged-workflow.builder.ts",
+    "unresolvedTo": "../workflows/staged-workflow.builder",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/project-dashboard-snapshots.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/project-deployments.service.ts",
+    "to": "src/modules/env-provisioning/deployment-targets.repository.ts",
+    "unresolvedTo": "../env-provisioning/deployment-targets.repository",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/project-deployments.service.ts",
+    "to": "src/modules/env-provisioning/encryption.service.ts",
+    "unresolvedTo": "../env-provisioning/encryption.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/project-deployments.service.ts",
+    "to": "src/modules/env-provisioning/env-provisioning.types.ts",
+    "unresolvedTo": "../env-provisioning/env-provisioning.types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/project-deployments.service.ts",
+    "to": "src/modules/env-provisioning/provider-clients/provider-client.registry.ts",
+    "unresolvedTo": "../env-provisioning/provider-clients/provider-client.registry",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/project-deployments.service.ts",
+    "to": "src/modules/env-provisioning/provider-connections.repository.ts",
+    "unresolvedTo": "../env-provisioning/provider-connections.repository",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/project-deployments.types.ts",
+    "to": "src/modules/env-provisioning/env-provisioning.types.ts",
+    "unresolvedTo": "../env-provisioning/env-provisioning.types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/project-drift-repair.service.ts",
+    "to": "src/modules/audit/audit-events.service.ts",
+    "unresolvedTo": "../audit/audit-events.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/project-drift-repair.service.ts",
+    "to": "src/modules/ci/ci.service.ts",
+    "unresolvedTo": "../ci/ci.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/project-drift-repair.service.ts",
+    "to": "src/modules/env-provisioning/deployment-targets.repository.ts",
+    "unresolvedTo": "../env-provisioning/deployment-targets.repository",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/project-drift.service.ts",
+    "to": "src/modules/ci/ci-tokens.repository.ts",
+    "unresolvedTo": "../ci/ci-tokens.repository",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/project-drift.service.ts",
+    "to": "src/modules/env-provisioning/deployment-targets.repository.ts",
+    "unresolvedTo": "../env-provisioning/deployment-targets.repository",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/project-drift.service.ts",
+    "to": "src/modules/env-provisioning/env-provisioning.types.ts",
+    "unresolvedTo": "../env-provisioning/env-provisioning.types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/project-drift.service.ts",
+    "to": "src/modules/env-provisioning/env-vars.repository.ts",
+    "unresolvedTo": "../env-provisioning/env-vars.repository",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/project-sync-findings.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/project-workflow-settings.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/project-workflow-update-requests.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/project-workspace.service.ts",
+    "to": "src/modules/github/github-workspace.types.ts",
+    "unresolvedTo": "../github/github-workspace.types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/project-workspace.service.ts",
+    "to": "src/modules/github/github.service.ts",
+    "unresolvedTo": "../github/github.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.module.ts",
+    "to": "src/modules/audit/audit.module.ts",
+    "unresolvedTo": "../audit/audit.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.module.ts",
+    "to": "src/modules/catalog/catalog.module.ts",
+    "unresolvedTo": "../catalog/catalog.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.module.ts",
+    "to": "src/modules/ci/ci.module.ts",
+    "unresolvedTo": "../ci/ci.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.module.ts",
+    "to": "src/modules/database/database.module.ts",
+    "unresolvedTo": "../database/database.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.module.ts",
+    "to": "src/modules/env-provisioning/env-provisioning.module.ts",
+    "unresolvedTo": "../env-provisioning/env-provisioning.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.module.ts",
+    "to": "src/modules/github/github.module.ts",
+    "unresolvedTo": "../github/github.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.module.ts",
+    "to": "src/modules/hierarchy/project-link/hierarchy-project-link.repository.ts",
+    "unresolvedTo": "../hierarchy/project-link/hierarchy-project-link.repository",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.module.ts",
+    "to": "src/modules/hierarchy/project-link/hierarchy-project-link.service.ts",
+    "unresolvedTo": "../hierarchy/project-link/hierarchy-project-link.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.module.ts",
+    "to": "src/modules/persistence/persistence.module.ts",
+    "unresolvedTo": "../persistence/persistence.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.module.ts",
+    "to": "src/modules/subscription/subscription.module.ts",
+    "unresolvedTo": "../subscription/subscription.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.module.ts",
+    "to": "src/modules/usage/usage.module.ts",
+    "unresolvedTo": "../usage/usage.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.module.ts",
+    "to": "src/modules/workspaces/workspaces.module.ts",
+    "unresolvedTo": "../workspaces/workspaces.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.service.ts",
+    "to": "src/modules/audit/audit-events.service.ts",
+    "unresolvedTo": "../audit/audit-events.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.service.ts",
+    "to": "src/modules/catalog/catalog.service.ts",
+    "unresolvedTo": "../catalog/catalog.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.service.ts",
+    "to": "src/modules/ci/ci-tokens.repository.ts",
+    "unresolvedTo": "../ci/ci-tokens.repository",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.service.ts",
+    "to": "src/modules/ci/ci.service.ts",
+    "unresolvedTo": "../ci/ci.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.service.ts",
+    "to": "src/modules/env-provisioning/deployment-targets.repository.ts",
+    "unresolvedTo": "../env-provisioning/deployment-targets.repository",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.service.ts",
+    "to": "src/modules/env-provisioning/env-provisioning.types.ts",
+    "unresolvedTo": "../env-provisioning/env-provisioning.types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.service.ts",
+    "to": "src/modules/env-provisioning/env-vars.repository.ts",
+    "unresolvedTo": "../env-provisioning/env-vars.repository",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.service.ts",
+    "to": "src/modules/env-provisioning/project-deployment-provisioning.service.ts",
+    "unresolvedTo": "../env-provisioning/project-deployment-provisioning.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.service.ts",
+    "to": "src/modules/github/github.service.ts",
+    "unresolvedTo": "../github/github.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.service.ts",
+    "to": "src/modules/hierarchy/project-link/hierarchy-project-link.service.ts",
+    "unresolvedTo": "../hierarchy/project-link/hierarchy-project-link.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.service.ts",
+    "to": "src/modules/persistence/workflow-history.repository.ts",
+    "unresolvedTo": "../persistence/workflow-history.repository",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.service.ts",
+    "to": "src/modules/usage/usage-quota.service.ts",
+    "unresolvedTo": "../usage/usage-quota.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.service.ts",
+    "to": "src/modules/usage/usage.types.ts",
+    "unresolvedTo": "../usage/usage.types",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.service.ts",
+    "to": "src/modules/workflows/dto/generate-workflow.dto.ts",
+    "unresolvedTo": "../workflows/dto/generate-workflow.dto",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.service.ts",
+    "to": "src/modules/workflows/staged-workflow.builder.ts",
+    "unresolvedTo": "../workflows/staged-workflow.builder",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.service.ts",
+    "to": "src/modules/workspaces/workspace-access.service.ts",
+    "unresolvedTo": "../workspaces/workspace-access.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.service.ts",
+    "to": "src/modules/workspaces/workspaces.repository.ts",
+    "unresolvedTo": "../workspaces/workspaces.repository",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/projects/projects.service.ts",
+    "to": "src/modules/workspaces/workspaces.service.ts",
+    "unresolvedTo": "../workspaces/workspaces.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/subscription/subscription.module.ts",
+    "to": "src/modules/persistence/persistence.module.ts",
+    "unresolvedTo": "../persistence/persistence.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/subscription/subscription.service.ts",
+    "to": "src/modules/persistence/outbox.repository.ts",
+    "unresolvedTo": "../persistence/outbox.repository",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/subscription/subscription.service.ts",
+    "to": "src/modules/persistence/subscriptions.repository.ts",
+    "unresolvedTo": "../persistence/subscriptions.repository",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/usage/usage-quota.service.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/usage/usage.module.ts",
+    "to": "src/modules/database/database.module.ts",
+    "unresolvedTo": "../database/database.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/usage/usage.module.ts",
+    "to": "src/modules/persistence/persistence.module.ts",
+    "unresolvedTo": "../persistence/persistence.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/workflows/staged-workflow.builder.ts",
+    "to": "src/modules/catalog/catalog.service.ts",
+    "unresolvedTo": "../catalog/catalog.service",
+    "dependencyTypes": [
+      "local",
+      "type-only",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/workflows/workflows.module.ts",
+    "to": "src/modules/catalog/catalog.module.ts",
+    "unresolvedTo": "../catalog/catalog.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/workflows/workflows.module.ts",
+    "to": "src/modules/persistence/persistence.module.ts",
+    "unresolvedTo": "../persistence/persistence.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/workflows/workflows.module.ts",
+    "to": "src/modules/subscription/subscription.module.ts",
+    "unresolvedTo": "../subscription/subscription.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/workflows/workflows.service.ts",
+    "to": "src/modules/catalog/catalog.service.ts",
+    "unresolvedTo": "../catalog/catalog.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/workflows/workflows.service.ts",
+    "to": "src/modules/persistence/outbox.repository.ts",
+    "unresolvedTo": "../persistence/outbox.repository",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/workflows/workflows.service.ts",
+    "to": "src/modules/persistence/workflow-history.repository.ts",
+    "unresolvedTo": "../persistence/workflow-history.repository",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/workspaces/workspaces.module.ts",
+    "to": "src/modules/database/database.module.ts",
+    "unresolvedTo": "../database/database.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/workspaces/workspaces.module.ts",
+    "to": "src/modules/persistence/persistence.module.ts",
+    "unresolvedTo": "../persistence/persistence.module",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
+    "from": "src/modules/workspaces/workspaces.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  }
+]
