@@ -27,7 +27,8 @@
     "db:apply": "node --env-file=.env -r ts-node/register scripts/apply-migrations.ts",
     "boundaries": "depcruise src tests --config .dependency-cruiser.cjs --ignore-known",
     "boundaries:graph": "depcruise src --config .dependency-cruiser.cjs --output-type dot > dependency-graph.dot",
-    "boundaries:new": "depcruise src tests --config .dependency-cruiser.cjs"
+    "boundaries:new": "depcruise src tests --config .dependency-cruiser.cjs",
+    "db:apply:all": "node scripts/apply-all-migrations.mjs"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
