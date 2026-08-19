@@ -15,6 +15,13 @@ export interface CiValidationContextRow {
   project_status: 'provisioning' | 'provisioned' | 'failed';
   token_status: 'active' | 'revoked';
   subscription_status: 'inactive' | 'active' | 'canceled' | null;
+  /**
+   * Mirrors identity.app_users.is_internal. Internal users are fully entitled
+   * without a billing row, exactly as SubscriptionService.getForUser treats
+   * them — this column is what lets CI validation honour that same rule.
+   * Null when the project's owner row is missing.
+   */
+  is_internal: boolean | null;
 }
 
 interface ProjectTokenStatusRow {
@@ -71,9 +78,11 @@ export class CiTokensRepository {
           p.repo_full_name,
           p.status AS project_status,
           t.status AS token_status,
-          s.status AS subscription_status
+          s.status AS subscription_status,
+          u.is_internal
         FROM ci.project_ci_tokens t
         JOIN projects.provisioned_projects p ON p.id = t.project_id
+        LEFT JOIN identity.app_users u ON u.id = p.user_id
         LEFT JOIN LATERAL (
           SELECT status
           FROM billing.user_subscriptions
