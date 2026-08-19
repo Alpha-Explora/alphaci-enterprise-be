@@ -87,39 +87,6 @@ describe('SubscriptionController', () => {
     });
   });
 
-  describe('createCheckout', () => {
-    it('delegates to service and returns result', async () => {
-      const result = await controller.createCheckout(makeRequest(), {
-        plan: 'pro',
-      });
-      expect(service.createCheckoutSession).toHaveBeenCalledWith(
-        fakeUser,
-        'pro',
-      );
-      expect((result as { checkoutId: string }).checkoutId).toBe('cs_test_123');
-    });
-
-    it('throws UnauthorizedException when no user in session', async () => {
-      await expect(
-        controller.createCheckout(makeUnauthRequest(), { plan: 'pro' }),
-      ).rejects.toThrow(UnauthorizedException);
-    });
-  });
-
-  describe('getCheckoutStatus', () => {
-    it('returns status from service', async () => {
-      const result = await controller.getCheckoutStatus(
-        makeRequest(),
-        'cs_test_123',
-      );
-      expect(service.getCheckoutStatus).toHaveBeenCalledWith(
-        fakeUser,
-        'cs_test_123',
-      );
-      expect(result).toEqual({ status: 'pending' });
-    });
-  });
-
   describe('activateMonthly', () => {
     it('activates pro by default', async () => {
       const result = await controller.activateMonthly(makeRequest(), {});
@@ -133,27 +100,13 @@ describe('SubscriptionController', () => {
     });
   });
 
-  describe('handlePayMongoWebhook', () => {
-    it('delegates PayMongo webhook payload to service', async () => {
-      const payload = { data: { type: 'checkout_session.payment.paid' } };
-      const req = {
-        rawBody: Buffer.from(JSON.stringify(payload)),
-      } as Request & {
-        rawBody: Buffer;
-      };
+  describe('payment gateway removal', () => {
+    it('exposes no checkout or provider-webhook endpoints', () => {
+      const surface = controller as unknown as Record<string, unknown>;
 
-      const result = await controller.handlePayMongoWebhook(
-        req,
-        payload,
-        'whsec_test_123',
-      );
-
-      expect(service.handlePayMongoWebhook).toHaveBeenCalledWith(
-        payload,
-        req.rawBody,
-        'whsec_test_123',
-      );
-      expect(result).toEqual({ received: true });
+      expect(surface['createCheckout']).toBeUndefined();
+      expect(surface['getCheckoutStatus']).toBeUndefined();
+      expect(surface['handlePayMongoWebhook']).toBeUndefined();
     });
   });
 

@@ -80,13 +80,6 @@ const appConfig: AppConfig = {
     defaultPlan: 'free',
     seededPlans: {},
     proMonthlyPricePhp: 300,
-    paymentProvider: 'none',
-    successUrl: 'http://localhost:3000/subscribe?status=success',
-    cancelUrl: 'http://localhost:3000/subscribe?status=cancelled',
-    paymongo: {
-      secretKey: '',
-      webhookSecret: '',
-    },
   },
   supabase: {
     dbUrl: undefined,

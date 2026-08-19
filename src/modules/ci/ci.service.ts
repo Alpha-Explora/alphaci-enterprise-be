@@ -5,8 +5,11 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
+import type { AppConfig } from '../../config/app.config';
 import { CiTokensRepository } from './ci-tokens.repository';
+import type { CiValidationContextRow } from './ci-tokens.repository';
 
 export interface IssueProjectTokenResult {
   token: string;
@@ -30,7 +33,14 @@ export interface ValidateRunResult {
 
 @Injectable()
 export class CiService {
-  constructor(private readonly ciTokensRepository: CiTokensRepository) {}
+  private readonly config: AppConfig;
+
+  constructor(
+    private readonly ciTokensRepository: CiTokensRepository,
+    private readonly configService: ConfigService,
+  ) {
+    this.config = this.configService.getOrThrow<AppConfig>('app');
+  }
 
   async issueProjectToken(projectId: string): Promise<IssueProjectTokenResult> {
     const token = `aci_${randomBytes(32).toString('base64url')}`;
@@ -70,7 +80,7 @@ export class CiService {
     if (context.project_status !== 'provisioned') {
       throw new ForbiddenException('Project is not provisioned');
     }
-    if (context.subscription_status !== 'active') {
+    if (!this.isEntitled(context)) {
       throw new ForbiddenException('Active subscription required');
     }
 
@@ -80,6 +90,21 @@ export class CiService {
       repoFullName: context.repo_full_name,
       stage,
     };
+  }
+
+  /**
+   * Entitlement for a pipeline run, mirroring SubscriptionService.getForUser.
+   *
+   * Pipelines are the product's core function, so this deliberately matches the
+   * app-side rule rather than reading billing directly: when the gate is off
+   * the deployment is contract-billed and every provisioned project may build,
+   * and internal users are entitled without a billing row. Only when the gate
+   * is on AND the owner is external does an active subscription matter.
+   */
+  private isEntitled(context: CiValidationContextRow): boolean {
+    if (this.config.subscription.gateEnabled === false) return true;
+    if (context.is_internal === true) return true;
+    return context.subscription_status === 'active';
   }
 
   private hashToken(token: string): string {

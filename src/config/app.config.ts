@@ -77,18 +77,17 @@ export interface AppConfig {
     workflowDir: string;
   };
   subscription: {
+    /**
+     * When false, every authenticated user is treated as fully entitled and no
+     * subscription row is required — the model for contract-billed enterprise
+     * deployments. Honoured by SubscriptionService.getForUser and by CI run
+     * validation in CiService.
+     */
     gateEnabled: boolean;
     mockEnabled: boolean;
     defaultPlan: SubscriptionPlan;
     seededPlans: Record<string, SubscriptionPlan>;
     proMonthlyPricePhp: number;
-    paymentProvider: 'none' | 'paymongo';
-    successUrl: string;
-    cancelUrl: string;
-    paymongo: {
-      secretKey: string;
-      webhookSecret: string;
-    };
   };
   envProvisioning: {
     enabled: boolean;
@@ -285,18 +284,6 @@ export const appConfig = registerAs('app', (): AppConfig => {
           | undefined) ?? 'free',
       seededPlans,
       proMonthlyPricePhp: Number(env['PRO_MONTHLY_PRICE_PHP'] ?? 300),
-      paymentProvider:
-        env['PAYMENT_PROVIDER'] === 'paymongo' ? 'paymongo' : 'none',
-      successUrl:
-        env['PAYMENT_SUCCESS_URL'] ??
-        `${env['FRONTEND_URL'] ?? 'http://localhost:3000'}/subscribe?status=success`,
-      cancelUrl:
-        env['PAYMENT_CANCEL_URL'] ??
-        `${env['FRONTEND_URL'] ?? 'http://localhost:3000'}/subscribe?status=cancelled`,
-      paymongo: {
-        secretKey: env['PAYMONGO_SECRET_KEY'] ?? '',
-        webhookSecret: env['PAYMONGO_WEBHOOK_SECRET'] ?? '',
-      },
     },
     envProvisioning: {
       enabled: env['ENV_PROVISIONING_ENABLED'] === 'true',
