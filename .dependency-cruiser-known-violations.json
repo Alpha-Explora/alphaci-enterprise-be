@@ -526,20 +526,6 @@
   {
     "type": "dependency",
     "from": "src/modules/env-provisioning/deployment-targets.service.ts",
-    "to": "src/modules/notifications/notification-events.service.ts",
-    "unresolvedTo": "../notifications/notification-events.service",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "no-deep-module-imports"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/modules/env-provisioning/deployment-targets.service.ts",
     "to": "src/modules/projects/projects.repository.ts",
     "unresolvedTo": "../projects/projects.repository",
     "dependencyTypes": [
@@ -654,20 +640,6 @@
   {
     "type": "dependency",
     "from": "src/modules/env-provisioning/env-provisioning.module.ts",
-    "to": "src/modules/notifications/notifications.module.ts",
-    "unresolvedTo": "../notifications/notifications.module",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "no-deep-module-imports"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/modules/env-provisioning/env-provisioning.module.ts",
     "to": "src/modules/persistence/persistence.module.ts",
     "unresolvedTo": "../persistence/persistence.module",
     "dependencyTypes": [
@@ -754,20 +726,6 @@
     "from": "src/modules/env-provisioning/env-vars.service.ts",
     "to": "src/modules/audit/audit-events.service.ts",
     "unresolvedTo": "../audit/audit-events.service",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "no-deep-module-imports"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/modules/env-provisioning/env-vars.service.ts",
-    "to": "src/modules/notifications/notification-events.service.ts",
-    "unresolvedTo": "../notifications/notification-events.service",
     "dependencyTypes": [
       "local",
       "import"
@@ -1637,6 +1595,20 @@
   },
   {
     "type": "dependency",
+    "from": "src/modules/notifications/infra/notifications.repository.ts",
+    "to": "src/modules/database/database.service.ts",
+    "unresolvedTo": "../../database/database.service",
+    "dependencyTypes": [
+      "local",
+      "import"
+    ],
+    "rule": {
+      "severity": "error",
+      "name": "no-deep-module-imports"
+    }
+  },
+  {
+    "type": "dependency",
     "from": "src/modules/notifications/notifications.module.ts",
     "to": "src/modules/database/database.module.ts",
     "unresolvedTo": "../database/database.module",
@@ -1654,20 +1626,6 @@
     "from": "src/modules/notifications/notifications.module.ts",
     "to": "src/modules/persistence/persistence.module.ts",
     "unresolvedTo": "../persistence/persistence.module",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "no-deep-module-imports"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/modules/notifications/notifications.repository.ts",
-    "to": "src/modules/database/database.service.ts",
-    "unresolvedTo": "../database/database.service",
     "dependencyTypes": [
       "local",
       "import"
@@ -1964,20 +1922,6 @@
   },
   {
     "type": "dependency",
-    "from": "src/modules/projects/project-drift-repair.service.ts",
-    "to": "src/modules/notifications/notification-events.service.ts",
-    "unresolvedTo": "../notifications/notification-events.service",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "no-deep-module-imports"
-    }
-  },
-  {
-    "type": "dependency",
     "from": "src/modules/projects/project-drift.service.ts",
     "to": "src/modules/ci/ci-tokens.repository.ts",
     "unresolvedTo": "../ci/ci-tokens.repository",
@@ -2219,20 +2163,6 @@
   {
     "type": "dependency",
     "from": "src/modules/projects/projects.module.ts",
-    "to": "src/modules/notifications/notifications.module.ts",
-    "unresolvedTo": "../notifications/notifications.module",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "no-deep-module-imports"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/modules/projects/projects.module.ts",
     "to": "src/modules/persistence/persistence.module.ts",
     "unresolvedTo": "../persistence/persistence.module",
     "dependencyTypes": [
@@ -2432,20 +2362,6 @@
     "from": "src/modules/projects/projects.service.ts",
     "to": "src/modules/hierarchy/project-link/hierarchy-project-link.service.ts",
     "unresolvedTo": "../hierarchy/project-link/hierarchy-project-link.service",
-    "dependencyTypes": [
-      "local",
-      "import"
-    ],
-    "rule": {
-      "severity": "error",
-      "name": "no-deep-module-imports"
-    }
-  },
-  {
-    "type": "dependency",
-    "from": "src/modules/projects/projects.service.ts",
-    "to": "src/modules/notifications/notification-events.service.ts",
-    "unresolvedTo": "../notifications/notification-events.service",
     "dependencyTypes": [
       "local",
       "import"

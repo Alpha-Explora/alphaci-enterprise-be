@@ -8,7 +8,7 @@ import { EnvVarsService } from './env-vars.service';
 import { ProviderClientRegistry } from './provider-clients/provider-client.registry';
 import { ProviderConnectionsRepository } from './provider-connections.repository';
 import { AuditEventsService } from '../audit/audit-events.service';
-import { NotificationEventsService } from '../notifications/notification-events.service';
+import { NotificationEventsService } from '../notifications/index.js';
 import { UsageQuotaService } from '../usage/usage-quota.service';
 import { WorkspaceAccessService } from '../workspaces/workspace-access.service';
 

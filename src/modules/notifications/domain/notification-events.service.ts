@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 
-import type { AppConfig } from '../../config/app.config';
-import { NotificationsRepository } from './notifications.repository';
+import type { AppConfig } from '../../../config/app.config';
+import { NotificationsRepository } from '../infra/notifications.repository';
 
 export interface NotificationEventInput {
   userId: string;

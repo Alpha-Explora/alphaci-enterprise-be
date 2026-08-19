@@ -9,7 +9,7 @@ import { ConfigService } from '@nestjs/config';
 
 import type { AppConfig } from '../../config/app.config';
 import { AuditEventsService } from '../audit/audit-events.service';
-import { NotificationEventsService } from '../notifications/notification-events.service';
+import { NotificationEventsService } from '../notifications/index.js';
 import { ProjectsRepository } from '../projects/projects.repository';
 import {
   DeploymentTargetsRepository,
