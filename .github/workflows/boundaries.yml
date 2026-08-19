@@ -14,9 +14,9 @@ name: Boundaries
 
 on:
   pull_request:
-    branches: [test, uat, main]
+    branches: [main]
   push:
-    branches: [test, uat, main]
+    branches: [main]
 
 permissions:
   contents: read
