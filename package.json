@@ -24,7 +24,10 @@
     "db:hierarchy:apply": "node scripts/hierarchy-migrations.cjs apply",
     "dummy:show": "node ./scripts/show-dummy-account.cjs",
     "check:github-teams": "node --env-file=.env -r ts-node/register scripts/check-github-team-setup.ts",
-    "db:apply": "node --env-file=.env -r ts-node/register scripts/apply-migrations.ts"
+    "db:apply": "node --env-file=.env -r ts-node/register scripts/apply-migrations.ts",
+    "boundaries": "depcruise src tests --config .dependency-cruiser.cjs --ignore-known",
+    "boundaries:graph": "depcruise src --config .dependency-cruiser.cjs --output-type dot > dependency-graph.dot",
+    "boundaries:new": "depcruise src tests --config .dependency-cruiser.cjs"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -61,6 +64,7 @@
     "@types/node": "^22.10.7",
     "@types/pg": "^8.20.0",
     "@types/supertest": "^6.0.2",
+    "dependency-cruiser": "^18.2.0",
     "eslint": "^10.1.0",
     "eslint-config-prettier": "^10.0.1",
     "eslint-plugin-prettier": "^5.2.2",
