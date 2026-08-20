@@ -3,7 +3,7 @@
 
 CREATE TABLE IF NOT EXISTS provisioned_projects (
   id                  UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id             TEXT          NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
+  user_id             UUID          NOT NULL REFERENCES app_users(id) ON DELETE CASCADE,
   repo_full_name      TEXT          NOT NULL,
   template_id         TEXT          NOT NULL,
   service_name        TEXT          NOT NULL,

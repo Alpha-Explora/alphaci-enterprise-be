@@ -60,7 +60,7 @@ INSERT INTO identity.app_users (
 SELECT
   u.id,
   u.github_user_id,
-  u.google_user_id,
+  NULL::TEXT,  -- public.app_users predates Google federation
   u.login,
   u.display_name,
   u.email,
@@ -81,7 +81,6 @@ WHERE NOT EXISTS (
 UPDATE identity.app_users iu
 SET
   github_user_id = COALESCE(iu.github_user_id, pu.github_user_id),
-  google_user_id = COALESCE(iu.google_user_id, pu.google_user_id),
   display_name = COALESCE(iu.display_name, pu.display_name),
   email = COALESCE(iu.email, pu.email),
   avatar_url = COALESCE(iu.avatar_url, pu.avatar_url),
@@ -367,33 +366,42 @@ ON CONFLICT (id) DO UPDATE SET
   project_options = EXCLUDED.project_options,
   updated_at = GREATEST(projects.provisioned_projects.updated_at, EXCLUDED.updated_at);
 
-INSERT INTO ci.project_ci_tokens (
-  id,
-  project_id,
-  token_hash,
-  token_prefix,
-  status,
-  revoked_at,
-  created_at,
-  updated_at
-)
-SELECT
-  t.id,
-  t.project_id,
-  t.token_hash,
-  t.token_prefix,
-  CASE WHEN t.status IN ('active', 'revoked') THEN t.status ELSE 'revoked' END,
-  t.revoked_at,
-  t.created_at,
-  t.updated_at
-FROM public.project_ci_tokens t
-JOIN projects.provisioned_projects p ON p.id = t.project_id
-ON CONFLICT (project_id) DO UPDATE SET
-  token_hash = EXCLUDED.token_hash,
-  token_prefix = EXCLUDED.token_prefix,
-  status = EXCLUDED.status,
-  revoked_at = EXCLUDED.revoked_at,
-  updated_at = GREATEST(ci.project_ci_tokens.updated_at, EXCLUDED.updated_at);
+DO $backfill_ci_tokens$
+BEGIN
+  -- Only a legacy database has a public copy; a fresh replay does not.
+  IF to_regclass('public.project_ci_tokens') IS NULL THEN
+    RETURN;
+  END IF;
+
+  INSERT INTO ci.project_ci_tokens (
+    id,
+    project_id,
+    token_hash,
+    token_prefix,
+    status,
+    revoked_at,
+    created_at,
+    updated_at
+  )
+  SELECT
+    t.id,
+    t.project_id,
+    t.token_hash,
+    t.token_prefix,
+    CASE WHEN t.status IN ('active', 'revoked') THEN t.status ELSE 'revoked' END,
+    t.revoked_at,
+    t.created_at,
+    t.updated_at
+  FROM public.project_ci_tokens t
+  JOIN projects.provisioned_projects p ON p.id = t.project_id
+  ON CONFLICT (project_id) DO UPDATE SET
+    token_hash = EXCLUDED.token_hash,
+    token_prefix = EXCLUDED.token_prefix,
+    status = EXCLUDED.status,
+    revoked_at = EXCLUDED.revoked_at,
+    updated_at = GREATEST(ci.project_ci_tokens.updated_at, EXCLUDED.updated_at);
+END
+$backfill_ci_tokens$;
 
 INSERT INTO github_app.github_installation_accounts (
   user_id,
