@@ -261,14 +261,79 @@ export class DatabaseService implements OnModuleDestroy {
     );
   }
 
+  /**
+   * Runs `fn` against a dedicated pooled connection — the multi-statement
+   * counterpart to query(), used where a caller needs its own transaction.
+   *
+   * The connection is probed with SELECT 1 before `fn` sees it. pool.connect()
+   * happily hands back a client the Supabase pooler has already reaped, and the
+   * failure then surfaces on whatever statement `fn` runs first. query() copes
+   * with that by retrying the statement; a transaction cannot be retried the
+   * same way, because a connection error raised at COMMIT is ambiguous — the
+   * transaction may or may not have applied, so re-running `fn` risks applying
+   * it twice.
+   *
+   * Probing moves the detection before any side effect exists. A stale client
+   * is discarded and one fresh connection is tried; `fn` therefore only ever
+   * runs on a connection known to be alive, and never runs twice.
+   *
+   * Without this, every withClient caller failed outright whenever the pool
+   * handed back a reaped connection — while ordinary query() traffic on the
+   * same pool sailed through on its retry. Creating a group was the visible
+   * casualty: POST /groups is a transaction, GET /groups is not.
+   */
   async withClient<T>(fn: (client: PoolClient) => Promise<T>): Promise<T> {
     const pool = this.getPoolOrThrow();
-    const client = await pool.connect();
+
+    let client: PoolClient;
+    try {
+      client = await this.acquireLiveClient(pool);
+    } catch (error) {
+      throw this.classifyDbError(error);
+    }
 
     try {
       return await fn(client);
+    } catch (error) {
+      // Route through classifyDbError so an infrastructure failure answers 503
+      // ("retry me") rather than an opaque 500 that reads like a crash. Genuine
+      // SQL errors pass through untouched.
+      throw this.classifyDbError(error);
     } finally {
       client.release();
+    }
+  }
+
+  /**
+   * Checks out a connection that has been verified to still work, replacing a
+   * stale one once. Only connection-level failures are retried — anything else
+   * is the caller's problem and is thrown as-is.
+   */
+  private async acquireLiveClient(pool: Pool): Promise<PoolClient> {
+    const client = await pool.connect();
+    try {
+      await client.query('SELECT 1');
+      return client;
+    } catch (error) {
+      // Destroy rather than release: this connection is broken, and returning
+      // it to the pool would hand the same corpse to the next caller.
+      client.release(true);
+      if (!this.isRetryableConnectionError(error)) {
+        throw error;
+      }
+      this.logger.warn(
+        `Pooled connection was stale on checkout; acquiring a fresh one: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+      const fresh = await pool.connect();
+      try {
+        await fresh.query('SELECT 1');
+        return fresh;
+      } catch (retryError) {
+        fresh.release(true);
+        throw retryError;
+      }
     }
   }
 

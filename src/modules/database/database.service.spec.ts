@@ -112,7 +112,11 @@ describe('DatabaseService', () => {
   it('uses a configured pool for queries, clients, and shutdown', async () => {
     mockPoolQuery.mockResolvedValueOnce({ rows: [{ value: 1 }] });
     const release = jest.fn();
-    const client = { release };
+    // withClient probes the connection with SELECT 1 before handing it over.
+    const client = {
+      release,
+      query: jest.fn().mockResolvedValue({ rows: [] }),
+    };
     mockPoolConnect.mockResolvedValueOnce(client);
     mockPoolEnd.mockResolvedValueOnce(undefined);
 
@@ -132,6 +136,121 @@ describe('DatabaseService', () => {
     expect(release).toHaveBeenCalled();
     await expect(service.close()).resolves.toBeUndefined();
     expect(mockPoolEnd).toHaveBeenCalled();
+  });
+
+  /* ── withClient and stale pooled connections ──────────────────────────────
+     pool.connect() will hand back a client the Supabase pooler has already
+     reaped. query() survives that by retrying the statement, but a transaction
+     cannot be retried — a connection error at COMMIT is ambiguous. So
+     withClient probes the connection first and only then runs the callback,
+     which must therefore never run twice. */
+
+  const staleError = Object.assign(
+    new Error('Connection terminated unexpectedly'),
+    { code: 'ECONNRESET' },
+  );
+
+  it('replaces a stale pooled connection and runs the callback once', async () => {
+    const dead = {
+      release: jest.fn(),
+      query: jest.fn().mockRejectedValue(staleError),
+    };
+    const live = {
+      release: jest.fn(),
+      query: jest.fn().mockResolvedValue({ rows: [] }),
+    };
+    mockPoolConnect.mockResolvedValueOnce(dead).mockResolvedValueOnce(live);
+
+    const service = new DatabaseService(
+      makeConfigService('postgres://user:pass@127.0.0.1:5432/db'),
+    );
+
+    const callback = jest.fn().mockResolvedValue('done');
+    await expect(service.withClient(callback)).resolves.toBe('done');
+
+    expect(callback).toHaveBeenCalledTimes(1);
+    expect(callback).toHaveBeenCalledWith(live);
+    // Never handed the corpse to the callback.
+    expect(callback).not.toHaveBeenCalledWith(dead);
+    // Destroyed, not returned to the pool for the next caller to trip over.
+    expect(dead.release).toHaveBeenCalledWith(true);
+    expect(live.release).toHaveBeenCalled();
+  });
+
+  it('does not run the callback at all when no live connection can be had', async () => {
+    const dead = () => ({
+      release: jest.fn(),
+      query: jest.fn().mockRejectedValue(staleError),
+    });
+    mockPoolConnect.mockResolvedValueOnce(dead()).mockResolvedValueOnce(dead());
+
+    const service = new DatabaseService(
+      makeConfigService('postgres://user:pass@127.0.0.1:5432/db'),
+    );
+
+    const callback = jest.fn();
+    await expect(service.withClient(callback)).rejects.toBeInstanceOf(
+      ServiceUnavailableException,
+    );
+    expect(callback).not.toHaveBeenCalled();
+  });
+
+  it('does not retry the probe on a non-connection error', async () => {
+    const sqlError = Object.assign(new Error('syntax error'), {
+      code: '42601',
+    });
+    const client = {
+      release: jest.fn(),
+      query: jest.fn().mockRejectedValue(sqlError),
+    };
+    mockPoolConnect.mockResolvedValueOnce(client);
+
+    const service = new DatabaseService(
+      makeConfigService('postgres://user:pass@127.0.0.1:5432/db'),
+    );
+
+    await expect(service.withClient(jest.fn())).rejects.toThrow('syntax error');
+    expect(mockPoolConnect).toHaveBeenCalledTimes(1);
+  });
+
+  it('maps a connection failure inside the callback to a 503', async () => {
+    const client = {
+      release: jest.fn(),
+      query: jest.fn().mockResolvedValue({ rows: [] }),
+    };
+    mockPoolConnect.mockResolvedValueOnce(client);
+
+    const service = new DatabaseService(
+      makeConfigService('postgres://user:pass@127.0.0.1:5432/db'),
+    );
+
+    await expect(
+      service.withClient(async () => {
+        throw staleError;
+      }),
+    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    expect(client.release).toHaveBeenCalled();
+  });
+
+  it('leaves a genuine SQL error from the callback untouched', async () => {
+    const client = {
+      release: jest.fn(),
+      query: jest.fn().mockResolvedValue({ rows: [] }),
+    };
+    mockPoolConnect.mockResolvedValueOnce(client);
+
+    const service = new DatabaseService(
+      makeConfigService('postgres://user:pass@127.0.0.1:5432/db'),
+    );
+
+    const constraintError = Object.assign(new Error('duplicate key'), {
+      code: '23505',
+    });
+    await expect(
+      service.withClient(async () => {
+        throw constraintError;
+      }),
+    ).rejects.toThrow('duplicate key');
   });
 
   it('registers an idle-client error handler and enables TCP keepalive', () => {
