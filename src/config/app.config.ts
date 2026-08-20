@@ -38,11 +38,17 @@ export interface AppConfig {
     internalOrg: string;
     /**
      * ALL repositories created by the product are forced into this GitHub
-     * organization instead of the signed-in user's personal account. Always
-     * resolves to a non-empty org (defaults to Alpha-Explora); an empty or
-     * unset GITHUB_ENFORCED_ORG falls back to the default rather than
-     * re-enabling personal-account creation. Requires the GitHub App to be
-     * installed on this org with access to all repositories.
+     * organization instead of the signed-in user's personal account. Requires
+     * the GitHub App to be installed on this org with access to all
+     * repositories.
+     *
+     * Empty when GITHUB_ENFORCED_ORG is unset, and deliberately so: there is no
+     * default org. A hardcoded fallback would mean a missing or failed config
+     * silently routes creation into whichever org the fallback names, which is
+     * indistinguishable from success at the call site. Empty instead trips the
+     * "no destination org is configured" guard in createRepo(), which names the
+     * variable to set. Empty never re-enables personal-account creation — the
+     * personal POST /user/repos path does not exist.
      */
     enforcedOrg: string;
     /**
@@ -209,7 +215,6 @@ export interface AppConfig {
 export const appConfig = registerAs('app', (): AppConfig => {
   const env = process.env;
   const isProduction = env['NODE_ENV'] === 'production';
-  const defaultEnforcedOrg = 'Alpha-Explora';
   const rawEnforcedOrg = env['GITHUB_ENFORCED_ORG']?.trim();
   const resolvedEnforcedOrg =
     rawEnforcedOrg && rawEnforcedOrg in env
@@ -259,10 +264,10 @@ export const appConfig = registerAs('app', (): AppConfig => {
       ).replace(/\\n/g, '\n'),
       appWebhookSecret: env['GITHUB_APP_WEBHOOK_SECRET'] ?? '',
       internalOrg: env['GITHUB_INTERNAL_ORG']?.trim() ?? '',
-      // Force every created repository into this org. Defaults to Alpha-Explora
-      // and, by using `||`, treats an empty or unset GITHUB_ENFORCED_ORG as the
-      // default too — the product can never provision into personal accounts.
-      enforcedOrg: resolvedEnforcedOrg || defaultEnforcedOrg,
+      // Force every created repository into this org. No default: see the
+      // enforcedOrg doc comment on AppConfig for why an unset value resolves to
+      // empty and fails loudly rather than picking an org.
+      enforcedOrg: resolvedEnforcedOrg ?? '',
       teamRoleSync: resolveTeamRoleSync(env['GITHUB_TEAM_ROLE_SYNC']),
       leadTeamSlug: env['GITHUB_TEAM_LEAD_SLUG']?.trim() || 'team-lead',
       developerTeamSlug:

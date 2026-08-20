@@ -174,16 +174,22 @@ export class GithubRepoDeleteError extends Error {
   }
 }
 
-/**
- * Organization every product-created repository is locked to when no
- * GITHUB_ENFORCED_ORG override is configured. This is the same default as
- * app.config.ts, duplicated here on purpose: getEnforcedOrg() falls back to it
- * directly so the org-only guarantee survives even if ConfigService is
- * unavailable or the `app` namespace failed to load. Without this, a config/DI
- * failure would make getEnforcedOrg() return '' and surface the misleading
- * "no destination org is configured" error despite the code being correct.
+/*
+ * There is deliberately no DEFAULT_ENFORCED_ORG.
+ *
+ * A hardcoded fallback used to live here, mirroring app.config.ts, so that a
+ * ConfigService failure could not leave getEnforcedOrg() empty. That reasoning
+ * holds only while the fallback names the org you actually want: it converts a
+ * config failure into a silent write to whichever org is hardcoded, reported to
+ * the caller as success. Once a deployment points GITHUB_ENFORCED_ORG at a
+ * sandbox, the same fallback routes creation back into the production org at
+ * precisely the moment configuration is least trustworthy.
+ *
+ * Empty is the safer failure. createRepo()'s guard turns it into a 403 naming
+ * the variable to set, and every other org-scoped call here already returns
+ * empty rather than requesting `orgs//...`. Nothing about an empty org
+ * re-enables personal-account creation — the POST /user/repos path was removed.
  */
-const DEFAULT_ENFORCED_ORG = 'Alpha-Explora';
 
 /**
  * Emitted on GithubService when a GitHub `repository` webhook reports
@@ -281,18 +287,18 @@ export class GithubService extends EventEmitter {
   }
 
   /**
-   * Login of the org that every created repository must belong to. Never empty:
-   * resolves the configured GITHUB_ENFORCED_ORG override when present, otherwise
-   * falls back to DEFAULT_ENFORCED_ORG — even if ConfigService is null or the
-   * `app` config namespace failed to load. Repository creation reads this so no
-   * caller can ever provision into a personal account, and so the
-   * "no destination org is configured" guard in createRepo() is unreachable.
+   * Login of the org that every created repository must belong to.
+   *
+   * Empty when GITHUB_ENFORCED_ORG is unset, or when ConfigService is null or
+   * the `app` namespace failed to load. Callers must treat empty as "no
+   * destination configured" and refuse rather than substituting one; see the
+   * note above on why no fallback org is hardcoded here.
    */
   getEnforcedOrg(): string {
-    const configured = this.configService
-      ?.get<AppConfig>('app')
-      ?.github.enforcedOrg?.trim();
-    return configured || DEFAULT_ENFORCED_ORG;
+    return (
+      this.configService?.get<AppConfig>('app')?.github.enforcedOrg?.trim() ??
+      ''
+    );
   }
 
   /**
@@ -307,6 +313,12 @@ export class GithubService extends EventEmitter {
     userId: string,
   ): Promise<Array<{ login: string; avatarUrl: string | null }>> {
     const org = this.getEnforcedOrg();
+    if (!org) {
+      this.logger.warn(
+        'Cannot list organization members: no GITHUB_ENFORCED_ORG is configured.',
+      );
+      return [];
+    }
     const token = await this.getInstallationAccessTokenForUser(userId);
     if (!token) return [];
 
@@ -314,7 +326,7 @@ export class GithubService extends EventEmitter {
     const maxPages = 5; // cap at 500 members — more than enough for this org
     for (let page = 1; page <= maxPages; page += 1) {
       const response = await this.fetchWithRetry(
-        `https://api.github.com/orgs/${org}/members?per_page=100&page=${String(page)}`,
+        `https://api.github.com/orgs/${encodeURIComponent(org)}/members?per_page=100&page=${String(page)}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -1192,8 +1204,8 @@ export class GithubService extends EventEmitter {
     // Repositories are ALWAYS created inside a GitHub organization. The personal
     // `POST /user/repos` path has been removed entirely so a repository can never
     // be provisioned into a user's own account — not through a missing owner, and
-    // not through configuration. `getEnforcedOrg()` defaults to Alpha-Explora and
-    // can never resolve to an empty value (see app.config.ts).
+    // not through configuration. `getEnforcedOrg()` is empty when no
+    // GITHUB_ENFORCED_ORG is set, and the guard below is how that surfaces.
     const targetOwner = ownerLogin || this.getEnforcedOrg();
     if (!targetOwner) {
       throw new ForbiddenException(

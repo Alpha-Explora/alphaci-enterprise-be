@@ -1028,11 +1028,11 @@ describe('GithubService', () => {
       },
     );
 
-    it('falls back to the default enforced org when config resolves empty', async () => {
-      // Defense in depth: even if the `app` config namespace yields an empty
-      // enforcedOrg (misconfiguration or a config/DI failure), creation must
-      // still lock to the hardcoded default org rather than surfacing the
-      // misleading "no destination org configured" error.
+    it('refuses to create a repository when no enforced org is configured', async () => {
+      // There is no fallback org on purpose. A hardcoded one would turn a config
+      // failure into a silent write to whichever org it named — and on a
+      // deployment pointed at a sandbox, that means writing to production while
+      // reporting success. Refusing names the variable to set instead.
       const unconfiguredService = new GithubService(
         makeConfigService({
           ...appConfig,
@@ -1040,30 +1040,21 @@ describe('GithubService', () => {
         }),
         installationsRepository,
       );
-      fetchMock.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({
-          html_url: 'https://github.com/Alpha-Explora/orders-api',
-          clone_url: 'https://github.com/Alpha-Explora/orders-api.git',
-          owner: { login: 'Alpha-Explora' },
-          name: 'orders-api',
+
+      await expect(
+        unconfiguredService.createRepo('gh-token', {
+          repoName: 'orders-api',
+          private: true,
         }),
-      } as unknown as Response);
+      ).rejects.toThrow(/no.*destination org is configured/i);
 
-      await unconfiguredService.createRepo('gh-token', {
-        repoName: 'orders-api',
-        private: true,
-      });
-
-      expect(fetchMock).toHaveBeenCalledWith(
-        'https://api.github.com/orgs/Alpha-Explora/repos',
-        expect.objectContaining({ method: 'POST' }),
-      );
+      // The point of the guard: nothing was created anywhere.
+      expect(fetchMock).not.toHaveBeenCalled();
     });
 
-    it('returns the default enforced org from getEnforcedOrg even without ConfigService', () => {
+    it('getEnforcedOrg is empty rather than guessing when ConfigService is absent', () => {
       const noConfigService = new GithubService(null, installationsRepository);
-      expect(noConfigService.getEnforcedOrg()).toBe('Alpha-Explora');
+      expect(noConfigService.getEnforcedOrg()).toBe('');
     });
 
     it('creates an organization repository with a user OAuth token when an owner is selected', async () => {

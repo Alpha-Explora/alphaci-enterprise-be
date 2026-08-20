@@ -87,15 +87,19 @@ describe('appConfig factory', () => {
     expect(config.session.secure).toBe(true);
   });
 
+  // No default org: an unset or blank GITHUB_ENFORCED_ORG resolves to empty so
+  // createRepo()'s guard fires and names the variable, rather than silently
+  // provisioning into whichever org a fallback happened to name. Empty does not
+  // re-enable personal accounts — that path does not exist.
   it.each([
-    ['unset', undefined, 'Alpha-Explora'],
-    ['empty', '', 'Alpha-Explora'],
-    ['whitespace only', '   ', 'Alpha-Explora'],
+    ['unset', undefined, ''],
+    ['empty', '', ''],
+    ['whitespace only', '   ', ''],
     ['a custom org', 'My-Org', 'My-Org'],
     ['a padded custom org', '  My-Org  ', 'My-Org'],
     ['a variable reference', 'GITHUB_INTERNAL_ORG', 'Alpha-Explora'],
   ])(
-    'always resolves a non-empty enforced org (never personal accounts) when GITHUB_ENFORCED_ORG is %s',
+    'resolves the enforced org from GITHUB_ENFORCED_ORG when it is %s',
     (_label, value, expected) => {
       process.env['GITHUB_INTERNAL_ORG'] = 'Alpha-Explora';
       if (value === undefined) {
