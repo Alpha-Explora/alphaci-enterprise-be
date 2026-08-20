@@ -17,10 +17,14 @@ CREATE TABLE IF NOT EXISTS oauth_states (
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- Partial index for fast expiry lookups used in the DELETE WHERE clause.
+-- Index for the expiry sweep in clean_expired_oauth_states().
+--
+-- Deliberately NOT partial. A `WHERE expires_at > NOW()` predicate is
+-- rejected outright — index predicates must be IMMUTABLE and NOW() is
+-- only STABLE — and it would have indexed the *unexpired* rows, which is
+-- the opposite of the set the DELETE sweep scans.
 CREATE INDEX IF NOT EXISTS idx_oauth_states_expires_at
-  ON oauth_states (expires_at)
-  WHERE expires_at > NOW();
+  ON oauth_states (expires_at);
 
 -- ─── Cleanup function (optional — for pg_cron or manual invocation) ──────────
 -- Removes expired rows that were never consumed (abandoned OAuth flows).
