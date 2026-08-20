@@ -58,6 +58,7 @@ describe('GroupsService — role enforcement (hard constraint: developer -> 403 
 
   beforeEach(() => {
     groupsRepository = {
+      createGroup: jest.fn(),
       findActiveMembership: jest.fn(),
       findGroupById: jest.fn(),
       updateGroup: jest.fn(),
@@ -349,5 +350,71 @@ describe('GroupsService — role enforcement (hard constraint: developer -> 403 
       'assignment-2',
       'owner-1',
     );
+  });
+
+  /* ── Group creation authorization ─────────────────────────────────────────
+     Untested until now, and it is the only gate on creating a group. The
+     controller previously layered an is_internal check on top, which blocked
+     every role on a deployment with GITHUB_INTERNAL_ORG unset — nothing there
+     can ever set the flag. These pin the policy so the role check stays the
+     only one, and so re-adding a second gate breaks a test rather than a
+     first-run install. */
+
+  const created = {
+    id: 'group-new',
+    name: 'Team Blaine',
+  } as unknown as Awaited<ReturnType<GroupsRepository['createGroup']>>;
+
+  it.each(['admin', 'lead'] as const)(
+    'lets a global %s create a group',
+    async (appRole) => {
+      jest.spyOn(accessService, 'getAppRole').mockResolvedValue(appRole);
+      jest.spyOn(accessService, 'isPlatformAdmin').mockResolvedValue(false);
+      groupsRepository.createGroup.mockResolvedValue(created);
+
+      await expect(
+        service.createGroup('user-1', { name: 'Team Blaine' }),
+      ).resolves.toMatchObject({ id: 'group-new', role: 'admin' });
+
+      expect(groupsRepository.createGroup).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'Team Blaine',
+          creatorUserId: 'user-1',
+        }),
+      );
+    },
+  );
+
+  it('blocks a global member from creating a group with 403', async () => {
+    jest.spyOn(accessService, 'getAppRole').mockResolvedValue('member');
+    jest.spyOn(accessService, 'isPlatformAdmin').mockResolvedValue(false);
+
+    await expect(
+      service.createGroup('user-1', { name: 'Team Blaine' }),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(groupsRepository.createGroup).not.toHaveBeenCalled();
+  });
+
+  it('lets a platform admin create a group despite a member app_role', async () => {
+    jest.spyOn(accessService, 'getAppRole').mockResolvedValue('member');
+    jest.spyOn(accessService, 'isPlatformAdmin').mockResolvedValue(true);
+    groupsRepository.createGroup.mockResolvedValue(created);
+
+    await expect(
+      service.createGroup('user-1', { name: 'Team Blaine' }),
+    ).resolves.toMatchObject({ id: 'group-new', role: 'admin' });
+  });
+
+  it('does not consult is_internal when authorizing creation', async () => {
+    // The regression guard. A brand-new user row after a database rebuild has
+    // is_internal=false and no way to change it, so anything reading that flag
+    // here locks out the very admin who has to create the first group.
+    jest.spyOn(accessService, 'getAppRole').mockResolvedValue('admin');
+    jest.spyOn(accessService, 'isPlatformAdmin').mockResolvedValue(false);
+    groupsRepository.createGroup.mockResolvedValue(created);
+
+    await expect(
+      service.createGroup('internal-false-user', { name: 'Team Blaine' }),
+    ).resolves.toMatchObject({ id: 'group-new', role: 'admin' });
   });
 });

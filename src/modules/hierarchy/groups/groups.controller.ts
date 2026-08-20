@@ -2,7 +2,6 @@ import {
   Body,
   Controller,
   Delete,
-  ForbiddenException,
   Get,
   Param,
   Patch,
@@ -38,15 +37,28 @@ export class GroupsController {
 
   @Post()
   createGroup(@Req() req: Request, @Body() body: CreateGroupDto) {
-    const userId = this.requireUserId(req);
-    // Plan §2.4: "any authenticated internal user" — is_internal is already
-    // stamped on the session at sign-in (session-user.interface.ts).
-    if (req.session.user?.isInternal !== true) {
-      throw new ForbiddenException(
-        'Group creation requires an internal account',
-      );
-    }
-    return this.groupsService.createGroup(userId, body);
+    // Authorization lives in the service: global Leads and Admins may create a
+    // group, Members may not (groups.service.ts).
+    //
+    // There used to be an additional `session.user.isInternal !== true` gate
+    // here, from Plan §2.4's "any authenticated internal user". It could never
+    // authorize anything, in either direction:
+    //
+    //   - INTERNAL deployment (GITHUB_INTERNAL_ORG set): sign-in already
+    //     rejects non-members outright, so every session that reaches this
+    //     point is internal. The check was a no-op.
+    //   - EXTERNAL/sold deployment (unset): `isInternal` is only ever assigned
+    //     inside `if (internalGatingEnabled)` in auth.service.ts, so it stays
+    //     false for every row. The check blocked group creation for everyone,
+    //     at every role, with no in-app way to lift it — identity.app_users
+    //     has no writer for the column outside sign-in.
+    //
+    // The second case is not hypothetical: it is what a database rebuild
+    // exposes. Rows recreated after a replay get the column default (false),
+    // and the migration that added it only ever preserves an existing true —
+    // it cannot mint one. A platform admin was left unable to create the first
+    // group. Re-adding an is_internal check here would reintroduce that.
+    return this.groupsService.createGroup(this.requireUserId(req), body);
   }
 
   @Get()
